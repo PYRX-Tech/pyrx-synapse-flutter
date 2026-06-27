@@ -14,7 +14,8 @@ import 'package:pyrx_synapse/pyrx_synapse.dart';
 
 void main() {
   group('pyrx_synapse umbrella package (PR-1 scaffold)', () {
-    test('re-exports PyrxSynapsePlatform from the platform-interface package', () {
+    test('re-exports PyrxSynapsePlatform from the platform-interface package',
+        () {
       // Just touching the symbol is enough — if the export chain is broken
       // this file will fail to compile.
       expect(PyrxSynapsePlatform.instance, isA<PyrxSynapsePlatform>());

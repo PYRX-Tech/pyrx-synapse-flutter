@@ -49,11 +49,23 @@ in the upstream `pyrx.synapse` monorepo for the design.
 
 ## Toolchain floor
 
-- Flutter `>= 3.16.0`
-- Dart SDK `>= 3.2.0 <4.0.0`
+- Flutter `>= 3.24.0`
+- Dart SDK `^3.6.0`
 - iOS 14+ (transitively from PYRXSynapse)
 - Android `minSdk 24` (transitively from `synapse-core`)
 - JDK 17 for the Android Gradle build (`JAVA_HOME=/path/to/jdk-17`)
+
+> **Note on the Dart SDK floor.** Plan D2 targeted Flutter 3.16 / Dart
+> 3.2 for the consumer floor. Migrating the workspace to
+> [Dart pub workspaces](https://dart.dev/tools/pub/workspaces) (required
+> by Melos 8) raised the per-package floor to Dart 3.6, which
+> translates to Flutter 3.24+ for SDK consumers. This is documented as
+> a deliberate widening: Flutter 3.24 shipped Aug 2024 and is over two
+> years old at the time of this writing, so the trade — strictly better
+> monorepo tooling against a marginally narrower consumer window —
+> favours the workspace setup. Apps still on Flutter 3.16-3.23 can
+> integrate the `PYRXSynapse` iOS Pod and the Android Maven artifacts
+> directly without this Flutter wrapper.
 
 ## Developer setup
 

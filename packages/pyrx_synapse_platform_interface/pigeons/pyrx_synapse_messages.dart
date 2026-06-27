@@ -34,8 +34,7 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     dartOut: 'lib/src/generated/pyrx_synapse_messages.g.dart',
     dartPackageName: 'pyrx_synapse_platform_interface',
-    swiftOut:
-        '../pyrx_synapse_ios/ios/Classes/PyrxSynapseMessages.g.swift',
+    swiftOut: '../pyrx_synapse_ios/ios/Classes/PyrxSynapseMessages.g.swift',
     swiftOptions: SwiftOptions(),
     kotlinOut:
         '../pyrx_synapse_android/android/src/main/kotlin/tech/pyrx/synapse/flutter/generated/PyrxSynapseMessages.g.kt',

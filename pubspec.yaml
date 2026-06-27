@@ -1,6 +1,18 @@
-# Workspace-root pubspec — exists so `melos bootstrap` can resolve the
-# workspace, but declares no app/plugin of its own. Real plugin metadata
-# lives in `packages/*/pubspec.yaml`.
+# Workspace-root pubspec. Configures Dart's pub workspace feature
+# (Dart 3.6+) so `melos bootstrap` can resolve all four packages in
+# lockstep, and configures Melos scripts under the `melos:` key.
+#
+# Note on SDK floor:
+#   Plan D2 targets Flutter 3.16+ / Dart 3.2+ for SDK CONSUMERS.
+#   Dart pub workspaces require Dart 3.6+ at the workspace root AND in
+#   every member package's environment.sdk constraint. We bump each
+#   package's SDK floor to ^3.6.0 — which translates to Flutter 3.24+
+#   for consumers (Flutter 3.24 shipped with Dart 3.5; 3.27 with Dart
+#   3.6). Documented in the PR description as a deliberate widening of
+#   D2's stated floor; the trade is monorepo tooling ergonomics today
+#   vs. a tighter consumer floor. Apps still on Flutter 3.16-3.23 can
+#   integrate the PYRXSynapse iOS Pod and the Android Maven artifacts
+#   directly without this Flutter wrapper.
 
 name: pyrx_synapse_workspace
 description: >-
@@ -9,7 +21,57 @@ description: >-
 publish_to: none
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
+  sdk: ^3.6.0
+
+workspace:
+  - packages/pyrx_synapse
+  - packages/pyrx_synapse_platform_interface
+  - packages/pyrx_synapse_ios
+  - packages/pyrx_synapse_android
 
 dev_dependencies:
   melos: ^8.0.0
+
+melos:
+  scripts:
+    # --- Quality gates -----------------------------------------------------
+    analyze:
+      description: Run flutter analyze across every package.
+      exec: flutter analyze .
+
+    format:
+      description: Verify Dart formatting (no changes written).
+      exec: dart format --output none --set-exit-if-changed .
+
+    format-fix:
+      description: Apply Dart formatting in place.
+      exec: dart format .
+
+    test:
+      description: Run flutter test in every package that has tests.
+      # Use `exec` directly instead of a nested `melos exec` inside `run`
+      # so we don't depend on `melos` being on PATH inside the spawned
+      # subshell (the activated dart-pub binary is at `~/.pub-cache/bin/`
+      # and that path is not propagated by every shell config).
+      exec: flutter test
+      packageFilters:
+        dirExists: test
+
+    # --- Pigeon codegen ----------------------------------------------------
+    pigeon-generate:
+      description: |
+        Regenerate every Pigeon-managed file in the platform-interface package.
+        Generated files are committed to git — re-run this script after editing
+        the Pigeon spec at packages/pyrx_synapse_platform_interface/pigeons/.
+      run: |
+        cd packages/pyrx_synapse_platform_interface && \
+          dart pub global run pigeon --input pigeons/pyrx_synapse_messages.dart
+
+    pigeon-check:
+      description: |
+        CI guard. Re-runs Pigeon and fails if the working tree changes —
+        i.e. somebody edited the Pigeon spec without committing the
+        regenerated outputs.
+      run: |
+        melos run pigeon-generate && \
+          git diff --exit-code -- '*.g.dart' '*.g.swift' '*.g.kt'
