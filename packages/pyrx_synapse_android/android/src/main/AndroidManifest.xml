@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AndroidManifest.xml for pyrx_synapse_android.
+
+  The customer's app manifest declares POST_NOTIFICATIONS (Android 13+)
+  and FCM defaults. We do NOT declare them here so customers retain
+  control over which permissions appear on the Play Store listing.
+  Documentation in PR-3 shows the required customer-side manifest lines.
+
+  The synapse-push module itself declares the FCM service registration
+  via its own manifest (merged transitively from the AAR).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

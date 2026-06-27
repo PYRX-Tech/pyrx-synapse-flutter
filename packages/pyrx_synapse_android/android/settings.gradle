@@ -1,0 +1,4 @@
+// Empty settings.gradle — Flutter's plugin tooling injects this module
+// into the customer's settings.gradle automatically. Present so the
+// module is recognised as a Gradle project for IDE / standalone use.
+rootProject.name = 'pyrx_synapse_android'
