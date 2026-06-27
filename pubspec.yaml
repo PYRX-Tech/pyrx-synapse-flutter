@@ -1,0 +1,15 @@
+# Workspace-root pubspec — exists so `melos bootstrap` can resolve the
+# workspace, but declares no app/plugin of its own. Real plugin metadata
+# lives in `packages/*/pubspec.yaml`.
+
+name: pyrx_synapse_workspace
+description: >-
+  Workspace root for the PYRX Synapse Flutter SDK (federated plugin).
+  All shippable code lives under `packages/`.
+publish_to: none
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+
+dev_dependencies:
+  melos: ^8.0.0

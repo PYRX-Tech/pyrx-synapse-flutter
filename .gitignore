@@ -27,3 +27,31 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Melos
+.melos_tool/
+pubspec_overrides.yaml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# CocoaPods (per-package)
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+
+# Gradle (per-package)
+**/android/.gradle/
+**/android/local.properties
+**/android/captures/
+
+# Generated example flutter scaffolding leftovers
+**/example/.flutter-plugins
+**/example/.flutter-plugins-dependencies
