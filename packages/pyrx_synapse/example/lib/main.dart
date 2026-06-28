@@ -3,6 +3,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:pyrx_synapse/pyrx_synapse.dart';
 
 Future<void> main() async {
@@ -21,15 +22,15 @@ Future<void> main() async {
   final subscription = Synapse.events.listen((event) {
     switch (event) {
       case PushReceived(:final event):
-        print('foreground push: ${event.title}');
+        debugPrint('foreground push: ${event.title}');
       case PushClicked(:final event):
-        print('tap → deep link: ${event.deepLink}');
+        debugPrint('tap → deep link: ${event.deepLink}');
       case PushReceivedColdStart(:final event):
-        print('cold start: ${event.title}');
+        debugPrint('cold start: ${event.title}');
       case QueueDrained(:final count):
-        print('flushed $count events');
+        debugPrint('flushed $count events');
       case IdentityChanged(:final before, :final after):
-        print(
+        debugPrint(
           'identity ${before?.externalId ?? "(none)"} → '
           '${after.externalId ?? "(anon)"}',
         );
@@ -42,7 +43,7 @@ Future<void> main() async {
 
   // 4. Ask for OS push permission.
   final status = await Synapse.requestPushPermission();
-  print('push permission: $status');
+  debugPrint('push permission: $status');
 
   // Tear down on app exit:
   await subscription.cancel();

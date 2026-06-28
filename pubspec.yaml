@@ -30,6 +30,10 @@ workspace:
   - packages/pyrx_synapse_android
   # PR-3 — sample app, in-repo per Phase 9.3 D11.
   - examples/synapse_flutter_demo
+  # PR-3 — minimal pub.dev example. Pub.dev rewards packages that ship
+  # an `example/` at root with higher discoverability scores; this
+  # folder is published inside the umbrella's archive.
+  - packages/pyrx_synapse/example
 
 dev_dependencies:
   melos: ^8.0.0
