@@ -8,6 +8,12 @@ version: 0.1.0
 homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
+documentation: https://pub.dev/documentation/pyrx_synapse_android/latest/
+topics:
+  - pyrx
+  - synapse
+  - android
+  - push-notifications
 
 environment:
   sdk: ^3.6.0

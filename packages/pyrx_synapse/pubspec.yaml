@@ -8,6 +8,7 @@ version: 0.1.0
 homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
+documentation: https://pub.dev/documentation/pyrx_synapse/latest/
 topics:
   - push-notifications
   - analytics

@@ -1,34 +1,80 @@
 # pyrx_synapse_platform_interface
 
-Platform-interface contract for the PYRX Synapse Flutter SDK.
+Platform-interface contract for the [`pyrx_synapse`](https://pub.dev/packages/pyrx_synapse)
+Flutter SDK. Defines the abstract Dart surface that platform
+implementations (`pyrx_synapse_ios`, `pyrx_synapse_android`) extend,
+plus the [Pigeon](https://pub.dev/packages/pigeon) spec that codegens
+the type-safe MethodChannel + EventChannel layer between Dart and the
+iOS / Android native SDKs.
 
-> **Do not depend on this package directly.** App-facing consumers should
-> depend on `pyrx_synapse`. This package is consumed by the platform
-> implementations (`pyrx_synapse_ios`, `pyrx_synapse_android`) and is published
-> only so independent platform implementations can satisfy the same contract.
+**You do not depend on this package directly.** Add the umbrella
+`pyrx_synapse` package to your `pubspec.yaml` and let federation pull
+this in transitively.
 
-Following Flutter's
-[federated plugin guidance](https://docs.flutter.dev/packages-and-plugins/developing-packages#federated-plugins),
-this package:
+## When you would consume this directly
 
-1. Defines `PyrxSynapsePlatform` — the abstract base class platform
-   implementations extend.
-2. Holds the [Pigeon](https://pub.dev/packages/pigeon) spec at
-   `pigeons/pyrx_synapse_messages.dart`. Pigeon generates type-safe Dart
-   (`lib/src/generated/pyrx_synapse_messages.g.dart`), Swift, and Kotlin code
-   from this single source of truth.
-3. Re-exports the data-transfer types used by the app-facing API.
+- You're implementing a **custom platform package** (e.g.,
+  `pyrx_synapse_web` wrapping `@pyrx/synapse-browser` via JS interop,
+  or `pyrx_synapse_macos` wrapping a future macOS native SDK).
+  Subclass `PyrxSynapsePlatform`, install your instance via
+  `PyrxSynapsePlatform.instance = ...` in your plugin's
+  `registerWith()`, declare your package's
+  `flutter.plugin.implements: pyrx_synapse`, and Flutter's
+  federated-plugin resolver routes calls to your code on the right
+  platform.
 
-## Regenerating Pigeon outputs
+- You're writing an integration test that needs to **fake the entire
+  platform layer** below the umbrella's transforms. Subclass
+  `PyrxSynapsePlatform` (don't go through `Mockito.mock` — the
+  PlatformInterface token check rejects untyped mocks), install your
+  fake, and the `Synapse.*` calls + `Synapse.events` stream route
+  through it without touching real platform channels.
 
-```bash
-# From the repo root:
-melos run pigeon-generate
+## Federated structure
 
-# Or from this package directly:
-cd packages/pyrx_synapse_platform_interface
-dart pub global run pigeon --input pigeons/pyrx_synapse_messages.dart
+```text
+   ┌──────────────────────────┐
+   │  pyrx_synapse (umbrella) │   ← what apps depend on
+   └────────────┬─────────────┘
+                │ depends on
+   ┌────────────▼─────────────┐
+   │  pyrx_synapse_platform_  │   ← THIS package
+   │  interface               │
+   └────┬───────────────┬─────┘
+        │ extended by   │ extended by
+   ┌────▼────────┐  ┌───▼──────────┐
+   │ pyrx_synapse│  │ pyrx_synapse_│
+   │ _ios        │  │ android      │
+   └─────────────┘  └──────────────┘
 ```
 
-Generated files are committed to git. CI runs `melos run pigeon-check` to
-guarantee the committed outputs match the spec.
+Mirrors `firebase_core` / `firebase_messaging`. Per
+[Flutter's plugin recommendations](https://docs.flutter.dev/packages-and-plugins/developing-packages#federated-plugins).
+
+## Pigeon spec
+
+The single source of truth for the Dart ↔ native wire shape lives at
+[`pigeons/pyrx_synapse_messages.dart`](pigeons/pyrx_synapse_messages.dart).
+Generated outputs are committed to:
+
+- `lib/src/generated/pyrx_synapse_messages.g.dart` (Dart)
+- `../pyrx_synapse_ios/ios/Classes/PyrxSynapseMessages.g.swift` (Swift)
+- `../pyrx_synapse_android/android/src/main/kotlin/.../generated/PyrxSynapseMessages.g.kt`
+  (Kotlin)
+
+To regenerate after editing the spec, run from the repo root:
+
+```bash
+melos run pigeon-generate
+melos run pigeon-check   # CI guard — fails if outputs diverge
+```
+
+## Repo + issues
+
+The Flutter SDK ships from
+[`PYRX-Tech/pyrx-synapse-flutter`](https://github.com/PYRX-Tech/pyrx-synapse-flutter).
+File issues there.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

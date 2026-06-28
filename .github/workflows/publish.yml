@@ -1,0 +1,110 @@
+name: Publish to pub.dev
+
+# Triggers on a `v<semver>` git tag pushed to main. Publishes all four
+# federated packages in the correct dependency order:
+#
+#   1. pyrx_synapse_platform_interface     (no inter-package deps)
+#   2. pyrx_synapse_ios + pyrx_synapse_android  (depend on platform-interface)
+#   3. pyrx_synapse                        (depends on all three)
+#
+# Requires the repo secret `PUB_DEV_PUBLISH_ACCESS_TOKEN` configured
+# from a `dart pub token add https://pub.dev` session — see
+# https://dart.dev/tools/pub/automated-publishing for the OIDC-friendly
+# setup (GitHub Actions can publish without long-lived secrets when
+# the package is configured for OIDC trust in pub.dev's UI).
+#
+# Recommended: configure pub.dev's "Automated publishing" UI for each
+# of the four packages to trust THIS workflow specifically. That
+# eliminates the long-lived token secret and uses GitHub's OIDC
+# identity instead.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-platform-interface:
+    name: Publish pyrx_synapse_platform_interface
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write    # required for OIDC publishing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.27.x'
+          cache: true
+
+      - name: dart pub publish (platform-interface, dry-run gate)
+        working-directory: packages/pyrx_synapse_platform_interface
+        run: dart pub publish --dry-run
+
+      - name: dart pub publish (platform-interface)
+        working-directory: packages/pyrx_synapse_platform_interface
+        run: dart pub publish --force
+
+  publish-ios:
+    name: Publish pyrx_synapse_ios
+    runs-on: ubuntu-latest
+    needs: publish-platform-interface
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.27.x', cache: true }
+
+      - name: dart pub publish (ios, dry-run gate)
+        working-directory: packages/pyrx_synapse_ios
+        run: dart pub publish --dry-run
+
+      - name: dart pub publish (ios)
+        working-directory: packages/pyrx_synapse_ios
+        run: dart pub publish --force
+
+  publish-android:
+    name: Publish pyrx_synapse_android
+    runs-on: ubuntu-latest
+    needs: publish-platform-interface
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.27.x', cache: true }
+
+      - name: dart pub publish (android, dry-run gate)
+        working-directory: packages/pyrx_synapse_android
+        run: dart pub publish --dry-run
+
+      - name: dart pub publish (android)
+        working-directory: packages/pyrx_synapse_android
+        run: dart pub publish --force
+
+  publish-umbrella:
+    name: Publish pyrx_synapse (umbrella)
+    runs-on: ubuntu-latest
+    needs: [publish-ios, publish-android]
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.27.x', cache: true }
+
+      - name: Wait for sibling packages to propagate to pub.dev
+        # pub.dev takes ~30s to index newly-published packages. The
+        # umbrella's dependency resolution will fail with "could not
+        # find pyrx_synapse_ios 0.1.0" if we publish too fast.
+        run: sleep 60
+
+      - name: dart pub publish (umbrella, dry-run gate)
+        working-directory: packages/pyrx_synapse
+        run: dart pub publish --dry-run
+
+      - name: dart pub publish (umbrella)
+        working-directory: packages/pyrx_synapse
+        run: dart pub publish --force
