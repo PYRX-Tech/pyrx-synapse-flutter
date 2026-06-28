@@ -28,6 +28,8 @@ workspace:
   - packages/pyrx_synapse_platform_interface
   - packages/pyrx_synapse_ios
   - packages/pyrx_synapse_android
+  # PR-3 — sample app, in-repo per Phase 9.3 D11.
+  - examples/synapse_flutter_demo
 
 dev_dependencies:
   melos: ^8.0.0

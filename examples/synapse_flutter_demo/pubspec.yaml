@@ -1,0 +1,36 @@
+name: synapse_flutter_demo
+description: >-
+  Sample Flutter app demonstrating end-to-end usage of the PYRX Synapse
+  Flutter SDK — identity, events, push permission/registration, and the
+  Stream<PyrxEvent> observer surface. Ships in-repo per Phase 9.3 D11.
+publish_to: 'none'
+
+version: 0.1.0+1
+
+# Sample uses the workspace SDK floor so `melos bootstrap` resolves it
+# alongside the four shippable packages. Flutter 3.24+ / Dart 3.6+ per
+# the workspace-root pubspec note.
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Path-dep on the sibling umbrella package. When you crib this sample
+  # for your own app, replace this block with `pyrx_synapse: ^0.1.0` to
+  # consume the published pub.dev release.
+  pyrx_synapse:
+    path: ../../packages/pyrx_synapse
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
