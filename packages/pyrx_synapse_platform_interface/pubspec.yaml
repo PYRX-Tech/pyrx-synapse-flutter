@@ -1,0 +1,31 @@
+name: pyrx_synapse_platform_interface
+description: >-
+  Platform-interface contract for the PYRX Synapse Flutter SDK. Defines the
+  abstract Dart surface that platform implementations
+  (`pyrx_synapse_ios`, `pyrx_synapse_android`) extend, plus the Pigeon
+  spec that codegens the type-safe MethodChannel + EventChannel layer
+  between Dart and the iOS / Android native SDKs.
+version: 0.1.0
+homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
+repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
+issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # Pigeon is a dev_dependency only — its outputs are committed to git so
+  # downstream packages and customers never run it. Re-run via
+  # `melos run pigeon-generate` after editing pigeons/*.dart.
+  pigeon: ^27.0.0

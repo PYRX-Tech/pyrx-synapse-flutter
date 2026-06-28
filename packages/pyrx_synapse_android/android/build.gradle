@@ -1,0 +1,70 @@
+// Gradle build for the Android implementation of the PYRX Synapse Flutter SDK.
+//
+// Customers never edit this file. Flutter's plugin tooling adds this
+// module to the customer's app project automatically when `pyrx_synapse`
+// is in the pubspec.
+//
+// Native dependency policy per plan D2: pin a minimum on the published
+// synapse-core + synapse-push 0.1.x line. Allow patch and minor bumps
+// within 0.1.x; cap below 1.0 to bound major-version risk.
+
+group 'tech.pyrx.synapse.flutter'
+version '0.1.0'
+
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'tech.pyrx.synapse.flutter'
+    compileSdk 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 34
+    }
+
+    dependencies {
+        // Phase 9.2.1 release floor (synapse-core ships the observer
+        // SharedFlow; synapse-push ships PyrxPush.install + the
+        // PyrxMessagingService).
+        implementation 'tech.pyrx.synapse:synapse-core:0.1.4'
+        implementation 'tech.pyrx.synapse:synapse-push:0.1.4'
+
+        implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+        implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2"
+
+        implementation 'androidx.core:core-ktx:1.12.0'
+    }
+}

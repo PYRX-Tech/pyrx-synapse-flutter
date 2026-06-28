@@ -1,0 +1,121 @@
+name: CI
+
+# Defensive scaffold per Phase 9.3 PR-1 plan §2.1 task 9.3.1.7. Runs on
+# every PR + on push to main. Skips jobs gracefully when the gate they
+# need isn't available (e.g., the iOS native build skips if Apple Silicon
+# runners aren't enabled on this repo). Tightens to required-status-check
+# after PR-2 adds the umbrella's example/ host app.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  dart-format-analyze-test:
+    name: dart format + flutter analyze + melos test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Floor per Phase 9.3 plan D2 — Flutter 3.16+ / Dart 3.2+
+          flutter-version: '3.16.x'
+          cache: true
+
+      - name: Activate melos
+        run: dart pub global activate melos
+
+      - name: melos bootstrap (resolve all 4 package deps)
+        run: melos bootstrap
+
+      - name: dart format
+        run: dart format --output none --set-exit-if-changed packages/
+
+      - name: flutter analyze
+        run: melos run analyze
+
+      - name: melos run test (per-package dart unit tests)
+        run: melos run test
+
+  pigeon-codegen-check:
+    name: pigeon round-trip clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.16.x'
+          cache: true
+
+      - name: Activate pigeon
+        # Pinned to v27.1.0 (the version used to generate committed files
+        # in commit 8a29e6b). If pigeon's output format changes across
+        # minor versions, the round-trip below will fail and the bump can
+        # be reviewed in a single dedicated PR.
+        run: dart pub global activate pigeon 27.1.0
+
+      - name: melos bootstrap (resolve platform-interface deps)
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+
+      - name: Re-generate pigeon outputs + verify no diff
+        run: |
+          cd packages/pyrx_synapse_platform_interface
+          dart run pigeon --input pigeons/pyrx_synapse_messages.dart
+          # Fail if the generated files diverge from what's committed —
+          # catches accidental hand-edits to pigeon outputs.
+          if [[ -n "$(git status --porcelain ../../packages/)" ]]; then
+            echo "ERROR: pigeon round-trip produced diff vs committed files."
+            git diff ../../packages/
+            exit 1
+          fi
+
+  ios-build:
+    name: iOS plugin compile (Pods install + Swift build)
+    runs-on: macos-14
+    # Disabled until PR-2 lands the umbrella's example/ host app. Without
+    # a host app there's no `Podfile` to drive `pod install` against.
+    # Re-enable by removing this `if: false` line after PR-2 merges.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.16.x', cache: true }
+      - name: Activate melos + bootstrap
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+      - name: pod install + xcodebuild
+        run: |
+          cd packages/pyrx_synapse/example/ios
+          pod install
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+            -destination 'platform=iOS Simulator,name=iPhone 15' build
+
+  android-build:
+    name: Android plugin compile (Gradle assembleDebug)
+    runs-on: ubuntu-latest
+    # Same gating as iOS — re-enable after PR-2 ships the example/ host app.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+        with: { packages: 'platform-tools platforms;android-34 build-tools;34.0.0' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '3.16.x', cache: true }
+      - name: Activate melos + bootstrap
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+      - name: gradle assembleDebug (example app)
+        run: |
+          cd packages/pyrx_synapse/example/android
+          ./gradlew assembleDebug

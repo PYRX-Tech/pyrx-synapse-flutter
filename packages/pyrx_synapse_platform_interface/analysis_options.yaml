@@ -1,0 +1,16 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # Pigeon-generated files — don't lint generated code.
+    - "lib/src/generated/**"
+    - "pigeons/**"
+  errors:
+    # Generated code may have these; we don't care.
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_final_locals: true

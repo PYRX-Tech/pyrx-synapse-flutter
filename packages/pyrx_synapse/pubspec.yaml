@@ -1,0 +1,42 @@
+name: pyrx_synapse
+description: >-
+  Official PYRX Synapse SDK for Flutter — push notifications, identity, and
+  event tracking on iOS and Android. Wraps the published native SDKs and
+  surfaces a single typed Dart API plus a Stream<PyrxEvent> for push,
+  identity, and queue lifecycle events.
+version: 0.1.0
+homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
+repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
+issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
+topics:
+  - push-notifications
+  - analytics
+  - notifications
+  - pyrx
+  - synapse
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pyrx_synapse_platform_interface: ^0.1.0
+  pyrx_synapse_ios: ^0.1.0
+  pyrx_synapse_android: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        default_package: pyrx_synapse_ios
+      android:
+        default_package: pyrx_synapse_android
