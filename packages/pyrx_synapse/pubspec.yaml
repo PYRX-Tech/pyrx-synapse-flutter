@@ -24,6 +24,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
+  meta: ^1.10.0
   pyrx_synapse_platform_interface: ^0.1.0
   pyrx_synapse_ios: ^0.1.0
   pyrx_synapse_android: ^0.1.0
