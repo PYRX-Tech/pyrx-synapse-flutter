@@ -1,19 +1,20 @@
-// Smoke test for the umbrella package. PR-1 ships scaffolding only — the
-// real `Synapse` namespace and `Stream<PyrxEvent>` merger land in PR-2.
+// Federation re-export smoke tests for the umbrella package.
 //
-// PR-1 scope:
-//   - Prove the umbrella package compiles under `flutter test`.
-//   - Prove the re-export of `pyrx_synapse_platform_interface` resolves
-//     end-to-end (so customers writing `import 'package:pyrx_synapse/...'`
-//     in PR-2 don't hit a transitive-dep gap).
-//   - Anchor the test runner so `melos run test` has something to run in
-//     this package on PR-1.
+// The umbrella's job is to be the ONE import every customer needs.
+// These tests are the guardrail that prevents the export barrel from
+// silently dropping a public type during a refactor. If any of these
+// assertions fails to compile, the umbrella is broken for downstream
+// consumers.
+//
+// Detailed PR-2 surface tests (Synapse namespace, payloads, sealed
+// events, PyrxAttributeValue, fromEnvelope) live in dedicated
+// per-module test files alongside the implementation.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pyrx_synapse/pyrx_synapse.dart';
 
 void main() {
-  group('pyrx_synapse umbrella package (PR-1 scaffold)', () {
+  group('pyrx_synapse umbrella re-exports (platform-interface barrel)', () {
     test(
       're-exports PyrxSynapsePlatform from the platform-interface package',
       () {
@@ -84,6 +85,76 @@ void main() {
     test('re-exports PyrxPushPermissionResult DTO', () {
       final r = PyrxPushPermissionResult(status: 'granted');
       expect(r.status, 'granted');
+    });
+  });
+
+  group('pyrx_synapse umbrella re-exports (PR-2 typed surface)', () {
+    test('Synapse namespace is reachable via the umbrella import', () {
+      // Touching the static type is enough — if the export chain is
+      // broken this file fails to compile.
+      expect(Synapse.events, isA<Stream<PyrxEvent>>());
+    });
+
+    test('PyrxConfig + PyrxEnvironment + PyrxLogLevel are reachable', () {
+      const config = PyrxConfig(
+        workspaceId: 'ws',
+        apiKey: 'psk',
+        environment: PyrxEnvironment.sandbox,
+        logLevel: PyrxLogLevel.debug,
+      );
+      expect(config.environment, PyrxEnvironment.sandbox);
+      expect(config.logLevel, PyrxLogLevel.debug);
+    });
+
+    test('PushPermissionStatus enum is reachable', () {
+      expect(PushPermissionStatus.values, hasLength(4));
+    });
+
+    test('PyrxEvent sealed hierarchy is reachable (all 5 leaves)', () {
+      // Re-exports of every sealed leaf so consumers can `switch` on
+      // them with a single import.
+      expect(const QueueDrained(0), isA<PyrxEvent>());
+      // PushReceived / PushClicked / PushReceivedColdStart /
+      // IdentityChanged each carry a non-default-constructible
+      // payload — symbol reachability is the assertion that matters.
+      expect(PushReceived, isA<Type>());
+      expect(PushClicked, isA<Type>());
+      expect(PushReceivedColdStart, isA<Type>());
+      expect(IdentityChanged, isA<Type>());
+    });
+
+    test('PyrxAttributeValue sealed hierarchy is reachable', () {
+      const v = PyrxAttributeStr('x');
+      expect(v, isA<PyrxAttributeValue>());
+      expect(PyrxAttributeValue.fromJson(null), isA<PyrxAttributeValue>());
+    });
+
+    test('payload data classes are reachable', () {
+      final snap = IdentitySnapshot(
+        anonymousId: 'a',
+        externalId: 'b',
+        snapshotAt: DateTime.utc(2026, 6, 28, 10),
+      );
+      expect(snap.anonymousId, 'a');
+
+      final pushEvent = PushReceivedEvent(
+        title: 't',
+        body: 'b',
+        pushLogId: null,
+        data: const {},
+        pyrxAttrs: const {},
+        receivedAt: DateTime.utc(2026, 6, 28, 10),
+      );
+      expect(pushEvent.title, 't');
+
+      final clickEvent = PushClickedEvent(
+        pushLogId: null,
+        deepLink: null,
+        actionId: null,
+        pyrxAttrs: const {},
+        clickedAt: DateTime.utc(2026, 6, 28, 10),
+      );
+      expect(clickEvent.actionId, isNull);
     });
   });
 }

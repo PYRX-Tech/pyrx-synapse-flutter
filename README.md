@@ -6,11 +6,46 @@ communications platform. Wraps the published native SDKs
 Android) and surfaces a single typed Dart API plus a `Stream<PyrxEvent>` for
 push, identity, and queue lifecycle events.
 
-> **Status — PR-1 (Bootstrap).** This commit lays down the federated plugin
+> **Status — PR-2 (Dart API surface).** PR-1 shipped the federated plugin
 > skeleton, the Pigeon-generated bridge contract, and the iOS + Android native
-> bridges. The app-facing Dart API (`Synapse` namespace, merged
-> `Stream<PyrxEvent>`) lands in PR-2; the sample app + customer docs land in
-> PR-3; pub.dev publishing lands in PR-3.
+> bridges. PR-2 (this commit) adds the app-facing Dart API: the `Synapse`
+> namespace (12 imperative methods), the merged `Stream<PyrxEvent>`, the sealed
+> event hierarchy, the typed `PyrxAttributeValue` sum, and 115 unit tests. The
+> sample app + customer-facing docs + pub.dev publish land in PR-3.
+
+## Usage (preview)
+
+```dart
+import 'package:pyrx_synapse/pyrx_synapse.dart';
+
+await Synapse.initialize(const PyrxConfig(
+  workspaceId: '...',
+  apiKey: 'psk_test_...',
+  environment: PyrxEnvironment.sandbox,
+));
+
+// Subscribe early so cold-start events are caught.
+Synapse.events.listen((event) {
+  switch (event) {
+    case PushReceived(:final event):
+      print('foreground push: ${event.title}');
+    case PushClicked(:final event):
+      print('tap: ${event.deepLink}');
+    case PushReceivedColdStart(:final event):
+      print('cold-start: ${event.title}');
+    case QueueDrained(:final count):
+      print('flushed $count events');
+    case IdentityChanged(:final before, :final after):
+      print('identity: ${before?.externalId} → ${after.externalId}');
+  }
+});
+
+await Synapse.identify('user_123', traits: {'plan': 'pro'});
+await Synapse.track('order_placed', properties: {'order_id': '42'});
+await Synapse.requestPushPermission();
+```
+
+The full sample app + integration guide ship in PR-3.
 
 ## Workspace layout
 
@@ -93,8 +128,8 @@ The Flutter SDK ships in four PRs against this repo:
 
 | PR | Scope |
 |----|-------|
-| **PR-1** (this) | Repo bootstrap, Pigeon spec, iOS + Android native bridges, smoke tests, CI workflow |
-| PR-2 | App-facing Dart `Synapse` namespace, `Stream<PyrxEvent>` merger, typed `PyrxAttributeValue` |
+| PR-1 | Repo bootstrap, Pigeon spec, iOS + Android native bridges, smoke tests, CI workflow |
+| **PR-2** (this) | App-facing Dart `Synapse` namespace, `Stream<PyrxEvent>` merger via envelope unpacking, sealed `PyrxEvent` hierarchy, typed `PyrxAttributeValue`, 115 unit tests |
 | PR-3 | Sample app (`examples/synapse_flutter_demo/`), customer-facing docs, pub.dev publish |
 | PR-4 | Upstream monorepo close: `ARCHITECTURE.md §28.7` SDK matrix update + cross-link |
 
