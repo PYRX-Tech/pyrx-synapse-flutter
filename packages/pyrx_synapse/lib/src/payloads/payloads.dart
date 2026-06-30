@@ -12,5 +12,6 @@
 // sealed `PyrxEvent` subtypes in `lib/src/pyrx_event.dart`.
 
 export 'identity_snapshot.dart';
+export 'in_app_message.dart';
 export 'push_clicked_event.dart';
 export 'push_received_event.dart';

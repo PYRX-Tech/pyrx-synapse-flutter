@@ -17,9 +17,9 @@ import 'package:flutter/services.dart';
 import 'package:meta/meta.dart' show immutable, protected, visibleForTesting;
 
 Object? _extractReplyValueOrThrow(
-  List<Object?>? replyList,
-  String channelName, {
-  required bool isNullValid,
+    List<Object?>? replyList,
+    String channelName, {
+    required bool isNullValid,
 }) {
   if (replyList == null) {
     throw PlatformException(
@@ -103,6 +103,7 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
+
 /// Discriminator for [PyrxEventEnvelope]. Mirrors the case-set of the
 /// native sealed types byte-for-byte.
 ///
@@ -110,12 +111,18 @@ int _deepHash(Object? value) {
 /// Dart consumer wraps a `default:` branch so unknown variants from
 /// future native SDKs are tolerated; the umbrella's `Stream<PyrxEvent>`
 /// drops unknown envelopes silently with a debug log.
+///
+/// Phase 10 PR-2b (ADR-0009 D5) extends the 5-event taxonomy to 7 by
+/// adding [inAppMessageReceived] + [inAppMessageDismissed] — symmetric
+/// with the browser/iOS/Android SDKs' equivalent events.
 enum PyrxEventKind {
   pushReceived,
   pushClicked,
   pushReceivedColdStart,
   queueDrained,
   identityChanged,
+  inAppMessageReceived,
+  inAppMessageDismissed,
 }
 
 /// Arguments for [PyrxSynapseHostApi.initialize].
@@ -160,8 +167,7 @@ class PyrxInitArgs {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PyrxInitArgs decode(Object result) {
     result as List<Object?>;
@@ -183,11 +189,7 @@ class PyrxInitArgs {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(workspaceId, other.workspaceId) &&
-        _deepEquals(apiKey, other.apiKey) &&
-        _deepEquals(environment, other.environment) &&
-        _deepEquals(baseUrl, other.baseUrl) &&
-        _deepEquals(logLevel, other.logLevel);
+    return _deepEquals(workspaceId, other.workspaceId) && _deepEquals(apiKey, other.apiKey) && _deepEquals(environment, other.environment) && _deepEquals(baseUrl, other.baseUrl) && _deepEquals(logLevel, other.logLevel);
   }
 
   @override
@@ -239,8 +241,7 @@ class PyrxIdentityResult {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PyrxIdentityResult decode(Object result) {
     result as List<Object?>;
@@ -262,11 +263,7 @@ class PyrxIdentityResult {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(contactId, other.contactId) &&
-        _deepEquals(path, other.path) &&
-        _deepEquals(aliasedExternalId, other.aliasedExternalId) &&
-        _deepEquals(eventsReattributed, other.eventsReattributed) &&
-        _deepEquals(devicesReattributed, other.devicesReattributed);
+    return _deepEquals(contactId, other.contactId) && _deepEquals(path, other.path) && _deepEquals(aliasedExternalId, other.aliasedExternalId) && _deepEquals(eventsReattributed, other.eventsReattributed) && _deepEquals(devicesReattributed, other.devicesReattributed);
   }
 
   @override
@@ -299,8 +296,7 @@ class PyrxPushPermissionResult {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PyrxPushPermissionResult decode(Object result) {
     result as List<Object?>;
@@ -312,8 +308,7 @@ class PyrxPushPermissionResult {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
-    if (other is! PyrxPushPermissionResult ||
-        other.runtimeType != runtimeType) {
+    if (other is! PyrxPushPermissionResult || other.runtimeType != runtimeType) {
       return false;
     }
     if (identical(this, other)) {
@@ -394,8 +389,7 @@ class PyrxDebugInfo {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PyrxDebugInfo decode(Object result) {
     result as List<Object?>;
@@ -424,18 +418,7 @@ class PyrxDebugInfo {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sdkVersion, other.sdkVersion) &&
-        _deepEquals(platform, other.platform) &&
-        _deepEquals(initialized, other.initialized) &&
-        _deepEquals(workspaceId, other.workspaceId) &&
-        _deepEquals(environment, other.environment) &&
-        _deepEquals(baseUrl, other.baseUrl) &&
-        _deepEquals(logLevel, other.logLevel) &&
-        _deepEquals(anonymousId, other.anonymousId) &&
-        _deepEquals(externalId, other.externalId) &&
-        _deepEquals(trackingEnabled, other.trackingEnabled) &&
-        _deepEquals(queueDepth, other.queueDepth) &&
-        _deepEquals(deviceTokenFingerprint, other.deviceTokenFingerprint);
+    return _deepEquals(sdkVersion, other.sdkVersion) && _deepEquals(platform, other.platform) && _deepEquals(initialized, other.initialized) && _deepEquals(workspaceId, other.workspaceId) && _deepEquals(environment, other.environment) && _deepEquals(baseUrl, other.baseUrl) && _deepEquals(logLevel, other.logLevel) && _deepEquals(anonymousId, other.anonymousId) && _deepEquals(externalId, other.externalId) && _deepEquals(trackingEnabled, other.trackingEnabled) && _deepEquals(queueDepth, other.queueDepth) && _deepEquals(deviceTokenFingerprint, other.deviceTokenFingerprint);
   }
 
   @override
@@ -483,8 +466,7 @@ class PushReceivedEventDto {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PushReceivedEventDto decode(Object result) {
     result as List<Object?>;
@@ -493,8 +475,7 @@ class PushReceivedEventDto {
       body: result[1]! as String,
       pushLogId: result[2] as String?,
       data: (result[3]! as Map<Object?, Object?>).cast<String?, Object?>(),
-      pyrxAttrs:
-          (result[4] as Map<Object?, Object?>?)?.cast<String?, Object?>(),
+      pyrxAttrs: (result[4] as Map<Object?, Object?>?)?.cast<String?, Object?>(),
       receivedAt: result[5]! as String,
     );
   }
@@ -508,12 +489,7 @@ class PushReceivedEventDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(title, other.title) &&
-        _deepEquals(body, other.body) &&
-        _deepEquals(pushLogId, other.pushLogId) &&
-        _deepEquals(data, other.data) &&
-        _deepEquals(pyrxAttrs, other.pyrxAttrs) &&
-        _deepEquals(receivedAt, other.receivedAt);
+    return _deepEquals(title, other.title) && _deepEquals(body, other.body) && _deepEquals(pushLogId, other.pushLogId) && _deepEquals(data, other.data) && _deepEquals(pyrxAttrs, other.pyrxAttrs) && _deepEquals(receivedAt, other.receivedAt);
   }
 
   @override
@@ -556,8 +532,7 @@ class PushClickedEventDto {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PushClickedEventDto decode(Object result) {
     result as List<Object?>;
@@ -565,8 +540,7 @@ class PushClickedEventDto {
       pushLogId: result[0] as String?,
       deepLink: result[1] as String?,
       actionId: result[2] as String?,
-      pyrxAttrs:
-          (result[3] as Map<Object?, Object?>?)?.cast<String?, Object?>(),
+      pyrxAttrs: (result[3] as Map<Object?, Object?>?)?.cast<String?, Object?>(),
       clickedAt: result[4]! as String,
     );
   }
@@ -580,11 +554,7 @@ class PushClickedEventDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(pushLogId, other.pushLogId) &&
-        _deepEquals(deepLink, other.deepLink) &&
-        _deepEquals(actionId, other.actionId) &&
-        _deepEquals(pyrxAttrs, other.pyrxAttrs) &&
-        _deepEquals(clickedAt, other.clickedAt);
+    return _deepEquals(pushLogId, other.pushLogId) && _deepEquals(deepLink, other.deepLink) && _deepEquals(actionId, other.actionId) && _deepEquals(pyrxAttrs, other.pyrxAttrs) && _deepEquals(clickedAt, other.clickedAt);
   }
 
   @override
@@ -619,8 +589,7 @@ class IdentitySnapshotDto {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static IdentitySnapshotDto decode(Object result) {
     result as List<Object?>;
@@ -640,9 +609,7 @@ class IdentitySnapshotDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(anonymousId, other.anonymousId) &&
-        _deepEquals(externalId, other.externalId) &&
-        _deepEquals(snapshotAt, other.snapshotAt);
+    return _deepEquals(anonymousId, other.anonymousId) && _deepEquals(externalId, other.externalId) && _deepEquals(snapshotAt, other.snapshotAt);
   }
 
   @override
@@ -669,8 +636,7 @@ class QueueDrainedEventDto {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static QueueDrainedEventDto decode(Object result) {
     result as List<Object?>;
@@ -719,8 +685,7 @@ class IdentityChangedEventDto {
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static IdentityChangedEventDto decode(Object result) {
     result as List<Object?>;
@@ -752,7 +717,346 @@ class IdentityChangedEventDto {
   }
 }
 
-/// Single wire envelope for the 5-event observer surface. Exactly one of
+/// One call-to-action button on an [InAppMessageDto]. NLT source has
+/// already been resolved against the current contact at fetch time —
+/// `label` and `actionPayload` are ready to render verbatim.
+///
+/// `actionType` is one of: `"deep_link"`, `"dismiss"`, `"webview"`,
+/// `"callback"` (lowercase snake_case, matching the wire). Pigeon's
+/// codec stays string-based so the discriminator round-trips losslessly
+/// across the bridge without per-language enum translation.
+class InAppCtaDto {
+  InAppCtaDto({
+    required this.id,
+    required this.label,
+    required this.actionType,
+    this.actionPayload,
+  });
+
+  String id;
+
+  String label;
+
+  String actionType;
+
+  String? actionPayload;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      label,
+      actionType,
+      actionPayload,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static InAppCtaDto decode(Object result) {
+    result as List<Object?>;
+    return InAppCtaDto(
+      id: result[0]! as String,
+      label: result[1]! as String,
+      actionType: result[2]! as String,
+      actionPayload: result[3] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! InAppCtaDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) && _deepEquals(label, other.label) && _deepEquals(actionType, other.actionType) && _deepEquals(actionPayload, other.actionPayload);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'InAppCtaDto(id: $id, label: $label, actionType: $actionType, actionPayload: $actionPayload)';
+  }
+}
+
+/// One in-app message delivered to a registered render callback.
+///
+/// Mirrors the iOS `InAppMessage` struct + Android `InAppMessage` data
+/// class field-for-field per ADR-0009 D5. The host app draws the UI —
+/// the SDK does NOT render (ADR-0008 D2). `customData` is an arbitrary
+/// JSON-shaped map the campaign emitter attaches; it crosses the
+/// Pigeon codec as `Map<String?, Object?>` (the same shape `pyrx_attrs`
+/// uses on push payloads) and is re-wrapped into a typed
+/// `Map<String, PyrxAttributeValue>` by the umbrella package.
+///
+/// `expiresAt` is an ISO-8601 UTC string (matching the backend's
+/// `datetime.isoformat()` default). The umbrella package parses it to
+/// `DateTime?`.
+class InAppMessageDto {
+  InAppMessageDto({
+    required this.id,
+    required this.messageId,
+    required this.placement,
+    required this.title,
+    required this.body,
+    this.imageUrl,
+    required this.ctas,
+    this.customData,
+    this.expiresAt,
+    required this.priority,
+  });
+
+  /// Server-issued assignment id. Pass back via [markInteracted] /
+  /// [dismiss] / observer events to identify the message.
+  String id;
+
+  /// The `in_app_messages.id` — stable across assignments.
+  String messageId;
+
+  /// Placement key the host app maps to a UI surface
+  /// (e.g. `"home_banner"`).
+  String placement;
+
+  /// NLT-rendered title text.
+  String title;
+
+  /// NLT-rendered body text.
+  String body;
+
+  /// NLT-rendered image URL, or null.
+  String? imageUrl;
+
+  /// 0–2 CTAs (Phase 10 v1 scope).
+  List<InAppCtaDto> ctas;
+
+  /// Host-app-driven custom JSON. Same loosely-typed shape as the push
+  /// `data` slot — values may themselves be deeply nested maps / lists.
+  Map<String?, Object?>? customData;
+
+  /// ISO-8601 UTC expiry instant. Null when the message has no expiry.
+  String? expiresAt;
+
+  /// Host-app sort / queue priority. Higher = more important.
+  int priority;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      id,
+      messageId,
+      placement,
+      title,
+      body,
+      imageUrl,
+      ctas,
+      customData,
+      expiresAt,
+      priority,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static InAppMessageDto decode(Object result) {
+    result as List<Object?>;
+    return InAppMessageDto(
+      id: result[0]! as String,
+      messageId: result[1]! as String,
+      placement: result[2]! as String,
+      title: result[3]! as String,
+      body: result[4]! as String,
+      imageUrl: result[5] as String?,
+      ctas: (result[6]! as List<Object?>).cast<InAppCtaDto>(),
+      customData: (result[7] as Map<Object?, Object?>?)?.cast<String?, Object?>(),
+      expiresAt: result[8] as String?,
+      priority: result[9]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! InAppMessageDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) && _deepEquals(messageId, other.messageId) && _deepEquals(placement, other.placement) && _deepEquals(title, other.title) && _deepEquals(body, other.body) && _deepEquals(imageUrl, other.imageUrl) && _deepEquals(ctas, other.ctas) && _deepEquals(customData, other.customData) && _deepEquals(expiresAt, other.expiresAt) && _deepEquals(priority, other.priority);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'InAppMessageDto(id: $id, messageId: $messageId, placement: $placement, title: $title, body: $body, imageUrl: $imageUrl, ctas: $ctas, customData: $customData, expiresAt: $expiresAt, priority: $priority)';
+  }
+}
+
+class InAppMessageReceivedEventDto {
+  InAppMessageReceivedEventDto({
+    required this.message,
+  });
+
+  InAppMessageDto message;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      message,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static InAppMessageReceivedEventDto decode(Object result) {
+    result as List<Object?>;
+    return InAppMessageReceivedEventDto(
+      message: result[0]! as InAppMessageDto,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! InAppMessageReceivedEventDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(message, other.message);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'InAppMessageReceivedEventDto(message: $message)';
+  }
+}
+
+class InAppMessageDismissedEventDto {
+  InAppMessageDismissedEventDto({
+    required this.messageId,
+    this.reason,
+  });
+
+  String messageId;
+
+  String? reason;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      messageId,
+      reason,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static InAppMessageDismissedEventDto decode(Object result) {
+    result as List<Object?>;
+    return InAppMessageDismissedEventDto(
+      messageId: result[0]! as String,
+      reason: result[1] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! InAppMessageDismissedEventDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(messageId, other.messageId) && _deepEquals(reason, other.reason);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'InAppMessageDismissedEventDto(messageId: $messageId, reason: $reason)';
+  }
+}
+
+/// Result of [PyrxSynapseHostApi.inAppShow]. Mirrors the iOS
+/// `Synapse.ShowToken` and Android `ShowToken` — both opaque handles
+/// that unregister the callback when closed.
+///
+/// Pigeon does not synthesise opaque-handle types across languages, so
+/// we ship a small DTO carrying the (placement, subscriptionId) pair
+/// the native side needs to look up the registration for
+/// [PyrxSynapseHostApi.inAppUnregisterShow]. The Dart-side `ShowToken`
+/// class wraps this DTO and exposes `dispose()` — the host app never
+/// sees the subscription id.
+class InAppShowTokenDto {
+  InAppShowTokenDto({
+    required this.placement,
+    required this.subscriptionId,
+  });
+
+  String placement;
+
+  int subscriptionId;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      placement,
+      subscriptionId,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static InAppShowTokenDto decode(Object result) {
+    result as List<Object?>;
+    return InAppShowTokenDto(
+      placement: result[0]! as String,
+      subscriptionId: result[1]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! InAppShowTokenDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(placement, other.placement) && _deepEquals(subscriptionId, other.subscriptionId);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'InAppShowTokenDto(placement: $placement, subscriptionId: $subscriptionId)';
+  }
+}
+
+/// Single wire envelope for the 7-event observer surface. Exactly one of
 /// the `*Payload` fields is non-null per envelope, matching [kind].
 ///
 /// We use a flat-fields envelope instead of a Dart sealed class so
@@ -766,6 +1070,8 @@ class PyrxEventEnvelope {
     this.pushReceivedColdStart,
     this.queueDrained,
     this.identityChanged,
+    this.inAppMessageReceived,
+    this.inAppMessageDismissed,
   });
 
   PyrxEventKind kind;
@@ -780,6 +1086,10 @@ class PyrxEventEnvelope {
 
   IdentityChangedEventDto? identityChanged;
 
+  InAppMessageReceivedEventDto? inAppMessageReceived;
+
+  InAppMessageDismissedEventDto? inAppMessageDismissed;
+
   List<Object?> _toList() {
     return <Object?>[
       kind,
@@ -788,12 +1098,13 @@ class PyrxEventEnvelope {
       pushReceivedColdStart,
       queueDrained,
       identityChanged,
+      inAppMessageReceived,
+      inAppMessageDismissed,
     ];
   }
 
   Object encode() {
-    return _toList();
-  }
+    return _toList();  }
 
   static PyrxEventEnvelope decode(Object result) {
     result as List<Object?>;
@@ -804,6 +1115,8 @@ class PyrxEventEnvelope {
       pushReceivedColdStart: result[3] as PushReceivedEventDto?,
       queueDrained: result[4] as QueueDrainedEventDto?,
       identityChanged: result[5] as IdentityChangedEventDto?,
+      inAppMessageReceived: result[6] as InAppMessageReceivedEventDto?,
+      inAppMessageDismissed: result[7] as InAppMessageDismissedEventDto?,
     );
   }
 
@@ -816,12 +1129,7 @@ class PyrxEventEnvelope {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(kind, other.kind) &&
-        _deepEquals(pushReceived, other.pushReceived) &&
-        _deepEquals(pushClicked, other.pushClicked) &&
-        _deepEquals(pushReceivedColdStart, other.pushReceivedColdStart) &&
-        _deepEquals(queueDrained, other.queueDrained) &&
-        _deepEquals(identityChanged, other.identityChanged);
+    return _deepEquals(kind, other.kind) && _deepEquals(pushReceived, other.pushReceived) && _deepEquals(pushClicked, other.pushClicked) && _deepEquals(pushReceivedColdStart, other.pushReceivedColdStart) && _deepEquals(queueDrained, other.queueDrained) && _deepEquals(identityChanged, other.identityChanged) && _deepEquals(inAppMessageReceived, other.inAppMessageReceived) && _deepEquals(inAppMessageDismissed, other.inAppMessageDismissed);
   }
 
   @override
@@ -830,9 +1138,10 @@ class PyrxEventEnvelope {
 
   @override
   String toString() {
-    return 'PyrxEventEnvelope(kind: $kind, pushReceived: $pushReceived, pushClicked: $pushClicked, pushReceivedColdStart: $pushReceivedColdStart, queueDrained: $queueDrained, identityChanged: $identityChanged)';
+    return 'PyrxEventEnvelope(kind: $kind, pushReceived: $pushReceived, pushClicked: $pushClicked, pushReceivedColdStart: $pushReceivedColdStart, queueDrained: $queueDrained, identityChanged: $identityChanged, inAppMessageReceived: $inAppMessageReceived, inAppMessageDismissed: $inAppMessageDismissed)';
   }
 }
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -841,38 +1150,53 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is PyrxEventKind) {
+    }    else if (value is PyrxEventKind) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    } else if (value is PyrxInitArgs) {
+    }    else if (value is PyrxInitArgs) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    } else if (value is PyrxIdentityResult) {
+    }    else if (value is PyrxIdentityResult) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    } else if (value is PyrxPushPermissionResult) {
+    }    else if (value is PyrxPushPermissionResult) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    } else if (value is PyrxDebugInfo) {
+    }    else if (value is PyrxDebugInfo) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    } else if (value is PushReceivedEventDto) {
+    }    else if (value is PushReceivedEventDto) {
       buffer.putUint8(134);
       writeValue(buffer, value.encode());
-    } else if (value is PushClickedEventDto) {
+    }    else if (value is PushClickedEventDto) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    } else if (value is IdentitySnapshotDto) {
+    }    else if (value is IdentitySnapshotDto) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    } else if (value is QueueDrainedEventDto) {
+    }    else if (value is QueueDrainedEventDto) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    } else if (value is IdentityChangedEventDto) {
+    }    else if (value is IdentityChangedEventDto) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    } else if (value is PyrxEventEnvelope) {
+    }    else if (value is InAppCtaDto) {
       buffer.putUint8(139);
+      writeValue(buffer, value.encode());
+    }    else if (value is InAppMessageDto) {
+      buffer.putUint8(140);
+      writeValue(buffer, value.encode());
+    }    else if (value is InAppMessageReceivedEventDto) {
+      buffer.putUint8(141);
+      writeValue(buffer, value.encode());
+    }    else if (value is InAppMessageDismissedEventDto) {
+      buffer.putUint8(142);
+      writeValue(buffer, value.encode());
+    }    else if (value is InAppShowTokenDto) {
+      buffer.putUint8(143);
+      writeValue(buffer, value.encode());
+    }    else if (value is PyrxEventEnvelope) {
+      buffer.putUint8(144);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -904,6 +1228,16 @@ class _PigeonCodec extends StandardMessageCodec {
       case 138:
         return IdentityChangedEventDto.decode(readValue(buffer)!);
       case 139:
+        return InAppCtaDto.decode(readValue(buffer)!);
+      case 140:
+        return InAppMessageDto.decode(readValue(buffer)!);
+      case 141:
+        return InAppMessageReceivedEventDto.decode(readValue(buffer)!);
+      case 142:
+        return InAppMessageDismissedEventDto.decode(readValue(buffer)!);
+      case 143:
+        return InAppShowTokenDto.decode(readValue(buffer)!);
+      case 144:
         return PyrxEventEnvelope.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -911,18 +1245,15 @@ class _PigeonCodec extends StandardMessageCodec {
   }
 }
 
-const StandardMethodCodec pigeonMethodCodec =
-    StandardMethodCodec(_PigeonCodec());
+const StandardMethodCodec pigeonMethodCodec = StandardMethodCodec(_PigeonCodec());
 
 class PyrxSynapseHostApi {
   /// Constructor for [PyrxSynapseHostApi]. The [binaryMessenger] named argument is
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  PyrxSynapseHostApi(
-      {BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+  PyrxSynapseHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
       : pigeonVar_binaryMessenger = binaryMessenger,
-        pigeonVar_messageChannelSuffix =
-            messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
 
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
@@ -930,46 +1261,43 @@ class PyrxSynapseHostApi {
   final String pigeonVar_messageChannelSuffix;
 
   Future<void> initialize(PyrxInitArgs args) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.initialize$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.initialize$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[args]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[args]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> setLogLevel(String level) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.setLogLevel$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.setLogLevel$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[level]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[level]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<PyrxDebugInfo> debugInfo() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.debugInfo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.debugInfo$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -979,10 +1307,11 @@ class PyrxSynapseHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as PyrxDebugInfo;
   }
 
@@ -990,50 +1319,46 @@ class PyrxSynapseHostApi {
   /// pass JSON-as-string instead of a typed map because Pigeon's
   /// codec rejects deeply nested heterogeneous maps; serialising on
   /// the Dart side keeps the contract narrow and round-trip-stable.
-  Future<PyrxIdentityResult> identify(
-      String externalId, String? traitsJson) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.identify$pigeonVar_messageChannelSuffix';
+  Future<PyrxIdentityResult> identify(String externalId, String? traitsJson) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.identify$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[externalId, traitsJson]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[externalId, traitsJson]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as PyrxIdentityResult;
   }
 
   Future<PyrxIdentityResult> alias(String newExternalId) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.alias$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.alias$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[newExternalId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[newExternalId]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as PyrxIdentityResult;
   }
 
   Future<void> logout() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.logout$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.logout$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1043,68 +1368,65 @@ class PyrxSynapseHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> track(String eventName, String? propertiesJson) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.track$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.track$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[eventName, propertiesJson]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[eventName, propertiesJson]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> screen(String screenName, String? propertiesJson) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.screen$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.screen$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[screenName, propertiesJson]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[screenName, propertiesJson]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
-  Future<PyrxPushPermissionResult> requestPushPermission(
-      bool alert, bool sound, bool badge) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.requestPushPermission$pigeonVar_messageChannelSuffix';
+  Future<PyrxPushPermissionResult> requestPushPermission(bool alert, bool sound, bool badge) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.requestPushPermission$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[alert, sound, badge]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[alert, sound, badge]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: false,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
     return pigeonVar_replyValue! as PyrxPushPermissionResult;
   }
 
@@ -1112,8 +1434,7 @@ class PyrxSynapseHostApi {
   /// `UIApplication.shared.registerForRemoteNotifications()`; on Android
   /// this is a no-op (FCM auto-registers via the messaging service).
   Future<void> registerForPushNotifications() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.registerForPushNotifications$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.registerForPushNotifications$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1123,34 +1444,33 @@ class PyrxSynapseHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> setTrackingEnabled(bool enabled) async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.setTrackingEnabled$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.setTrackingEnabled$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture =
-        pigeonVar_channel.send(<Object?>[enabled]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[enabled]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
-      pigeonVar_channelName,
-      isNullValid: true,
-    );
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<void> deleteUser() async {
-    final pigeonVar_channelName =
-        'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.deleteUser$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.deleteUser$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -1160,21 +1480,156 @@ class PyrxSynapseHostApi {
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
-      pigeonVar_replyList,
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Register a render callback for [placement]. The native side
+  /// dispatches fresh messages through the [onInAppMessageReceived]
+  /// event stream; the Dart umbrella routes them to the per-token
+  /// callback by matching [InAppShowTokenDto.subscriptionId] against
+  /// `InAppMessage.id`/placement.
+  ///
+  /// Returns the [InAppShowTokenDto] handle the Dart umbrella wraps in
+  /// a `ShowToken` that calls [inAppUnregisterShow] on dispose.
+  Future<InAppShowTokenDto> inAppShow(String placement) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppShow$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
-      isNullValid: true,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
     );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[placement]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as InAppShowTokenDto;
+  }
+
+  /// Unregister a callback previously registered via [inAppShow]. Safe
+  /// to call with an unknown id — native side no-ops.
+  Future<void> inAppUnregisterShow(String placement, int subscriptionId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppUnregisterShow$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[placement, subscriptionId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Sync-style read of currently-active messages from the in-memory
+  /// cache. Does NOT trigger a poll. Pass `null` for [placement] to
+  /// return every cached message (sorted by priority desc, then expiry
+  /// asc to match the cross-SDK contract).
+  Future<List<InAppMessageDto>> inAppGetActive(String? placement) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppGetActive$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[placement]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<InAppMessageDto>();
+  }
+
+  /// Mark a message dismissed. Evicts from cache, fires the
+  /// [onInAppMessageDismissed] event, and POSTs `/v1/in-app/log` with
+  /// `event="dismissed"`. [reason] is host-side observer metadata only
+  /// — it does NOT cross the wire (PR-1 backend has no `reason` field).
+  Future<void> inAppDismiss(String messageId, String? reason) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppDismiss$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[messageId, reason]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Mark a message interacted (a CTA was tapped). POSTs
+  /// `/v1/in-app/log` with `event="interacted"` and `cta_id=ctaId`.
+  /// Does NOT evict from cache.
+  Future<void> inAppMarkInteracted(String messageId, String ctaId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppMarkInteracted$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[messageId, ctaId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Force an immediate poll. Coalesces with any in-flight poll
+  /// (lifecycle rule 4). No-op when no placements are registered or
+  /// the SDK is not yet identified.
+  Future<void> inAppRefresh() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppRefresh$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 }
 
-Stream<PyrxEventEnvelope> streamEvents({String instanceName = ''}) {
+Stream<PyrxEventEnvelope> streamEvents( {String instanceName = ''}) {
   if (instanceName.isNotEmpty) {
     instanceName = '.$instanceName';
   }
-  final EventChannel streamEventsChannel = EventChannel(
-      'dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseEventApi.streamEvents$instanceName',
-      pigeonMethodCodec);
+  final EventChannel streamEventsChannel =
+      EventChannel('dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseEventApi.streamEvents$instanceName', pigeonMethodCodec);
   return streamEventsChannel.receiveBroadcastStream().map((dynamic event) {
     return event as PyrxEventEnvelope;
   });
 }
+    

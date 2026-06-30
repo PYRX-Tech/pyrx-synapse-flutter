@@ -440,17 +440,35 @@ void main() {
           ),
         ),
       ));
+      fake.emit(PyrxEventEnvelope(
+        kind: PyrxEventKind.inAppMessageReceived,
+        inAppMessageReceived: InAppMessageReceivedEventDto(
+          message: _inAppDto(),
+        ),
+      ));
+      fake.emit(PyrxEventEnvelope(
+        kind: PyrxEventKind.inAppMessageDismissed,
+        inAppMessageDismissed: InAppMessageDismissedEventDto(
+          messageId: 'msg-1',
+          reason: 'user_dismissed',
+        ),
+      ));
 
       // Give the stream a microtask to drain.
       await Future<void>.delayed(Duration.zero);
 
-      expect(received, hasLength(5));
+      expect(received, hasLength(7));
       expect(received[0], isA<PushReceived>());
       expect(received[1], isA<PushClicked>());
       expect(received[2], isA<PushReceivedColdStart>());
       expect(received[3], isA<QueueDrained>());
       expect(received[4], isA<IdentityChanged>());
+      expect(received[5], isA<InAppMessageReceived>());
+      expect(received[6], isA<InAppMessageDismissed>());
       expect((received[3] as QueueDrained).count, 3);
+      expect((received[5] as InAppMessageReceived).message.placement,
+          'home_banner');
+      expect((received[6] as InAppMessageDismissed).reason, 'user_dismissed');
 
       await sub.cancel();
     });
@@ -546,6 +564,19 @@ PushReceivedEventDto _pushDto() => PushReceivedEventDto(
       body: 'b',
       data: const <String?, Object?>{},
       receivedAt: '2026-06-28T10:00:00.000Z',
+    );
+
+InAppMessageDto _inAppDto() => InAppMessageDto(
+      id: 'asg-1',
+      messageId: 'msg-1',
+      placement: 'home_banner',
+      title: 'Welcome',
+      body: 'Tap to learn more',
+      imageUrl: null,
+      ctas: const <InAppCtaDto>[],
+      customData: null,
+      expiresAt: null,
+      priority: 0,
     );
 
 class _InitCall {
@@ -711,6 +742,71 @@ class _FakePlatform extends PyrxSynapsePlatform {
   @override
   Future<void> deleteUser() async {
     deleteUserCalled = true;
+  }
+
+  // ----- In-app messaging (Phase 10 PR-2b) -------------------------
+
+  /// Records every inAppShow call (placement).
+  final List<String> inAppShowCalls = [];
+
+  /// Records every inAppUnregisterShow call as (placement, subscriptionId).
+  final List<MapEntry<String, int>> inAppUnregisterShowCalls = [];
+
+  /// Records every inAppGetActive call (placement, may be null).
+  final List<String?> inAppGetActiveCalls = [];
+
+  /// Records every inAppDismiss call as (messageId, reason).
+  final List<MapEntry<String, String?>> inAppDismissCalls = [];
+
+  /// Records every inAppMarkInteracted call as (messageId, ctaId).
+  final List<MapEntry<String, String>> inAppMarkInteractedCalls = [];
+
+  /// Counts inAppRefresh invocations.
+  int inAppRefreshCallCount = 0;
+
+  /// Result returned by inAppShow — defaults to a monotonic-id token.
+  int _nextSubscriptionId = 0;
+
+  /// Stub messages returned by inAppGetActive.
+  List<InAppMessageDto> inAppGetActiveResult = const [];
+
+  @override
+  Future<InAppShowTokenDto> inAppShow(String placement) async {
+    inAppShowCalls.add(placement);
+    _nextSubscriptionId++;
+    return InAppShowTokenDto(
+      placement: placement,
+      subscriptionId: _nextSubscriptionId,
+    );
+  }
+
+  @override
+  Future<void> inAppUnregisterShow(
+    String placement,
+    int subscriptionId,
+  ) async {
+    inAppUnregisterShowCalls.add(MapEntry(placement, subscriptionId));
+  }
+
+  @override
+  Future<List<InAppMessageDto>> inAppGetActive(String? placement) async {
+    inAppGetActiveCalls.add(placement);
+    return inAppGetActiveResult;
+  }
+
+  @override
+  Future<void> inAppDismiss(String messageId, String? reason) async {
+    inAppDismissCalls.add(MapEntry(messageId, reason));
+  }
+
+  @override
+  Future<void> inAppMarkInteracted(String messageId, String ctaId) async {
+    inAppMarkInteractedCalls.add(MapEntry(messageId, ctaId));
+  }
+
+  @override
+  Future<void> inAppRefresh() async {
+    inAppRefreshCallCount++;
   }
 
   @override

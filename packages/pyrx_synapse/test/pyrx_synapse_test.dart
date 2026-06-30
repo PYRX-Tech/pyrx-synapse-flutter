@@ -35,10 +35,12 @@ void main() {
       expect(dto.body, 'world');
     });
 
-    test('re-exports the PyrxEventKind enum (all 5 cases visible)', () {
+    test('re-exports the PyrxEventKind enum (all 7 cases visible)', () {
       // The umbrella must surface the closed taxonomy so PR-2's
-      // sealed PyrxEvent class can switch over the wire kind.
-      expect(PyrxEventKind.values, hasLength(5));
+      // sealed PyrxEvent class can switch over the wire kind. Phase
+      // 10 PR-2b extended the taxonomy from 5 to 7 by adding the two
+      // in-app messaging variants.
+      expect(PyrxEventKind.values, hasLength(7));
       expect(
         PyrxEventKind.values,
         containsAll([
@@ -47,6 +49,8 @@ void main() {
           PyrxEventKind.pushReceivedColdStart,
           PyrxEventKind.queueDrained,
           PyrxEventKind.identityChanged,
+          PyrxEventKind.inAppMessageReceived,
+          PyrxEventKind.inAppMessageDismissed,
         ]),
       );
     });
@@ -110,17 +114,24 @@ void main() {
       expect(PushPermissionStatus.values, hasLength(4));
     });
 
-    test('PyrxEvent sealed hierarchy is reachable (all 5 leaves)', () {
+    test('PyrxEvent sealed hierarchy is reachable (all 7 leaves)', () {
       // Re-exports of every sealed leaf so consumers can `switch` on
-      // them with a single import.
+      // them with a single import. Phase 10 PR-2b added the two
+      // in-app messaging variants.
       expect(const QueueDrained(0), isA<PyrxEvent>());
+      expect(
+        const InAppMessageDismissed(messageId: 'm', reason: null),
+        isA<PyrxEvent>(),
+      );
       // PushReceived / PushClicked / PushReceivedColdStart /
-      // IdentityChanged each carry a non-default-constructible
-      // payload — symbol reachability is the assertion that matters.
+      // IdentityChanged / InAppMessageReceived each carry a
+      // non-default-constructible payload — symbol reachability is
+      // the assertion that matters.
       expect(PushReceived, isA<Type>());
       expect(PushClicked, isA<Type>());
       expect(PushReceivedColdStart, isA<Type>());
       expect(IdentityChanged, isA<Type>());
+      expect(InAppMessageReceived, isA<Type>());
     });
 
     test('PyrxAttributeValue sealed hierarchy is reachable', () {

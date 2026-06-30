@@ -4,7 +4,7 @@ description: >-
   event tracking on iOS and Android. Wraps the published native SDKs and
   surfaces a single typed Dart API plus a Stream<PyrxEvent> for push,
   identity, and queue lifecycle events.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
@@ -26,9 +26,9 @@ dependencies:
   flutter:
     sdk: flutter
   meta: ^1.10.0
-  pyrx_synapse_platform_interface: ^0.1.0
-  pyrx_synapse_ios: ^0.1.0
-  pyrx_synapse_android: ^0.1.0
+  pyrx_synapse_platform_interface: ^0.2.0
+  pyrx_synapse_ios: ^0.2.0
+  pyrx_synapse_android: ^0.2.0
 
 dev_dependencies:
   flutter_test:

@@ -53,12 +53,16 @@ import tech.pyrx.synapse.PyrxConfig
 import tech.pyrx.synapse.PyrxEnvironment
 import tech.pyrx.synapse.PyrxError
 import tech.pyrx.synapse.flutter.generated.FlutterError
+import tech.pyrx.synapse.flutter.generated.InAppMessageDto
+import tech.pyrx.synapse.flutter.generated.InAppShowTokenDto
 import tech.pyrx.synapse.flutter.generated.PyrxDebugInfo as PigeonPyrxDebugInfo
 import tech.pyrx.synapse.flutter.generated.PyrxIdentityResult as PigeonPyrxIdentityResult
 import tech.pyrx.synapse.flutter.generated.PyrxInitArgs
 import tech.pyrx.synapse.flutter.generated.PyrxPushPermissionResult
 import tech.pyrx.synapse.flutter.generated.PyrxSynapseHostApi
 import tech.pyrx.synapse.identity.IdentityResult
+import tech.pyrx.synapse.inapp.PyrxInApp
+import tech.pyrx.synapse.inapp.ShowToken as NativeShowToken
 import tech.pyrx.synapse.network.JSONValue
 import tech.pyrx.synapse.PyrxDebugInfo as NativePyrxDebugInfo
 
@@ -121,6 +125,23 @@ internal class PyrxSynapseHostApiImpl(
         scope.launch {
             try {
                 Pyrx.initialize(context = appContext, config = config)
+                // Phase 10 PR-2b — try installing the in-app manager
+                // again, now that Pyrx.initialize has completed. The
+                // plugin's onAttachedToEngine path runs this too, but
+                // attach commonly fires BEFORE the host calls
+                // initialize, so the bridge is null until now.
+                // Idempotent on the synapse-inapp side — re-installing
+                // the same bridge logs at info.
+                try {
+                    PyrxInApp.install(appContext)
+                } catch (e: Throwable) {
+                    // Don't fail initialize on an in-app install hiccup;
+                    // the host can still use push + identity + events.
+                    android.util.Log.w(
+                        "PYRXSynapseFlutter",
+                        "PyrxInApp.install after initialize failed: ${e.message}",
+                    )
+                }
                 callback(Result.success(Unit))
             } catch (e: PyrxError) {
                 callback(Result.failure(translate(e)))
@@ -351,6 +372,134 @@ internal class PyrxSynapseHostApiImpl(
                 callback(Result.success(Unit))
             } catch (e: PyrxError) {
                 callback(Result.failure(translate(e)))
+            } catch (e: Throwable) {
+                callback(failure("internal_error", e.message ?: e.toString()))
+            }
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // In-app messaging (Phase 10 PR-2b)
+    // ----------------------------------------------------------------
+    //
+    // The native `Pyrx.inApp` object exposes the cross-SDK-symmetric
+    // 5-method surface. The per-placement render callback we register
+    // with `Pyrx.inApp.show` is a no-op: the per-message dispatch into
+    // Dart happens via the `InAppMessageReceived` envelope on the
+    // shared `Pyrx.events` SharedFlow (PyrxEventStreamHandler), so
+    // Flutter consumers never see two dispatch paths for the same
+    // message. The callback only exists to keep the placement alive on
+    // the native InAppManager (so it keeps polling).
+    //
+    // We hand Dart a monotonic Flutter-side subscription id and stash
+    // the corresponding native [ShowToken] in a map; the companion
+    // [inAppUnregisterShow] looks the token up by id and closes it.
+    // This indirection exists because the native `ShowToken` is an
+    // opaque `AutoCloseable` — we can't surface its identity to Dart.
+
+    /// Monotonically-increasing Flutter-side subscription id. Allocated
+    /// per `inAppShow` call; never reused. Guarded by `tokensLock`.
+    @Volatile
+    private var nextSubscriptionId: Long = 0
+    private val inAppTokens: MutableMap<Long, NativeShowToken> = mutableMapOf()
+    private val tokensLock = Any()
+
+    override fun inAppShow(
+        placement: String,
+        callback: (Result<InAppShowTokenDto>) -> Unit,
+    ) {
+        scope.launch {
+            try {
+                val nativeToken = Pyrx.inApp.show(placement) { _ ->
+                    // No-op — see file-level note above. The Dart
+                    // umbrella dispatches per-placement via the shared
+                    // event stream's InAppMessageReceived envelope.
+                }
+                val id = synchronized(tokensLock) {
+                    nextSubscriptionId += 1
+                    val id = nextSubscriptionId
+                    inAppTokens[id] = nativeToken
+                    id
+                }
+                callback(
+                    Result.success(
+                        InAppShowTokenDto(
+                            placement = placement,
+                            subscriptionId = id,
+                        ),
+                    ),
+                )
+            } catch (e: Throwable) {
+                callback(failure("internal_error", e.message ?: e.toString()))
+            }
+        }
+    }
+
+    override fun inAppUnregisterShow(
+        placement: String,
+        subscriptionId: Long,
+        callback: (Result<Unit>) -> Unit,
+    ) {
+        val token: NativeShowToken? = synchronized(tokensLock) {
+            inAppTokens.remove(subscriptionId)
+        }
+        // `close()` is idempotent; safe to call even on a token we
+        // already evicted from the map (the second `Pyrx.inApp.show`
+        // call would have replaced the entry, but we got the token
+        // by-removal so no double-free).
+        token?.close()
+        callback(Result.success(Unit))
+    }
+
+    override fun inAppGetActive(
+        placement: String?,
+        callback: (Result<List<InAppMessageDto>>) -> Unit,
+    ) {
+        scope.launch {
+            try {
+                val messages = Pyrx.inApp.getActive(placement)
+                callback(Result.success(messages.map(::encodeInAppMessage)))
+            } catch (e: Throwable) {
+                callback(failure("internal_error", e.message ?: e.toString()))
+            }
+        }
+    }
+
+    override fun inAppDismiss(
+        messageId: String,
+        reason: String?,
+        callback: (Result<Unit>) -> Unit,
+    ) {
+        scope.launch {
+            try {
+                Pyrx.inApp.dismiss(messageId = messageId, reason = reason)
+                callback(Result.success(Unit))
+            } catch (e: Throwable) {
+                callback(failure("internal_error", e.message ?: e.toString()))
+            }
+        }
+    }
+
+    override fun inAppMarkInteracted(
+        messageId: String,
+        ctaId: String,
+        callback: (Result<Unit>) -> Unit,
+    ) {
+        scope.launch {
+            try {
+                Pyrx.inApp.markInteracted(messageId = messageId, ctaId = ctaId)
+                callback(Result.success(Unit))
+            } catch (e: Throwable) {
+                callback(failure("internal_error", e.message ?: e.toString()))
+            }
+        }
+    }
+
+    override fun inAppRefresh(callback: (Result<Unit>) -> Unit) {
+        scope.launch {
+            try {
+                Pyrx.inApp.refresh()
+                callback(Result.success(Unit))
             } catch (e: Throwable) {
                 callback(failure("internal_error", e.message ?: e.toString()))
             }

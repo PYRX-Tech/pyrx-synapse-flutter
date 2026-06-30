@@ -69,9 +69,13 @@ melos:
         Regenerate every Pigeon-managed file in the platform-interface package.
         Generated files are committed to git — re-run this script after editing
         the Pigeon spec at packages/pyrx_synapse_platform_interface/pigeons/.
+        Pigeon's bare output alternates between two equivalent formattings on
+        successive runs; we pipe through `dart format` to stabilise it so the
+        `pigeon-check` CI guard doesn't flap.
       run: |
         cd packages/pyrx_synapse_platform_interface && \
-          dart pub global run pigeon --input pigeons/pyrx_synapse_messages.dart
+          dart pub global run pigeon --input pigeons/pyrx_synapse_messages.dart && \
+          dart format lib/src/generated/pyrx_synapse_messages.g.dart
 
     pigeon-check:
       description: |

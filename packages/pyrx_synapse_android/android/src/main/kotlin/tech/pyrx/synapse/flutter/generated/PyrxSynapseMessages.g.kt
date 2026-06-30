@@ -207,13 +207,19 @@ class FlutterError (
  * Dart consumer wraps a `default:` branch so unknown variants from
  * future native SDKs are tolerated; the umbrella's `Stream<PyrxEvent>`
  * drops unknown envelopes silently with a debug log.
+ *
+ * Phase 10 PR-2b (ADR-0009 D5) extends the 5-event taxonomy to 7 by
+ * adding [inAppMessageReceived] + [inAppMessageDismissed] — symmetric
+ * with the browser/iOS/Android SDKs' equivalent events.
  */
 enum class PyrxEventKind(val raw: Int) {
   PUSH_RECEIVED(0),
   PUSH_CLICKED(1),
   PUSH_RECEIVED_COLD_START(2),
   QUEUE_DRAINED(3),
-  IDENTITY_CHANGED(4);
+  IDENTITY_CHANGED(4),
+  IN_APP_MESSAGE_RECEIVED(5),
+  IN_APP_MESSAGE_DISMISSED(6);
 
   companion object {
     fun ofRaw(raw: Int): PyrxEventKind? {
@@ -730,7 +736,307 @@ data class IdentityChangedEventDto (
 }
 
 /**
- * Single wire envelope for the 5-event observer surface. Exactly one of
+ * One call-to-action button on an [InAppMessageDto]. NLT source has
+ * already been resolved against the current contact at fetch time —
+ * `label` and `actionPayload` are ready to render verbatim.
+ *
+ * `actionType` is one of: `"deep_link"`, `"dismiss"`, `"webview"`,
+ * `"callback"` (lowercase snake_case, matching the wire). Pigeon's
+ * codec stays string-based so the discriminator round-trips losslessly
+ * across the bridge without per-language enum translation.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class InAppCtaDto (
+  val id: String,
+  val label: String,
+  val actionType: String,
+  val actionPayload: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): InAppCtaDto {
+      val id = pigeonVar_list[0] as String
+      val label = pigeonVar_list[1] as String
+      val actionType = pigeonVar_list[2] as String
+      val actionPayload = pigeonVar_list[3] as String?
+      return InAppCtaDto(id, label, actionType, actionPayload)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      label,
+      actionType,
+      actionPayload,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as InAppCtaDto
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.id, other.id) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.label, other.label) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.actionType, other.actionType) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.actionPayload, other.actionPayload)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.id)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.label)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.actionType)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.actionPayload)
+    return result
+  }
+  override fun toString(): String {
+    return "InAppCtaDto(id=$id, label=$label, actionType=$actionType, actionPayload=$actionPayload)"
+  }
+}
+
+/**
+ * One in-app message delivered to a registered render callback.
+ *
+ * Mirrors the iOS `InAppMessage` struct + Android `InAppMessage` data
+ * class field-for-field per ADR-0009 D5. The host app draws the UI —
+ * the SDK does NOT render (ADR-0008 D2). `customData` is an arbitrary
+ * JSON-shaped map the campaign emitter attaches; it crosses the
+ * Pigeon codec as `Map<String?, Object?>` (the same shape `pyrx_attrs`
+ * uses on push payloads) and is re-wrapped into a typed
+ * `Map<String, PyrxAttributeValue>` by the umbrella package.
+ *
+ * `expiresAt` is an ISO-8601 UTC string (matching the backend's
+ * `datetime.isoformat()` default). The umbrella package parses it to
+ * `DateTime?`.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class InAppMessageDto (
+  /**
+   * Server-issued assignment id. Pass back via [markInteracted] /
+   * [dismiss] / observer events to identify the message.
+   */
+  val id: String,
+  /** The `in_app_messages.id` — stable across assignments. */
+  val messageId: String,
+  /**
+   * Placement key the host app maps to a UI surface
+   * (e.g. `"home_banner"`).
+   */
+  val placement: String,
+  /** NLT-rendered title text. */
+  val title: String,
+  /** NLT-rendered body text. */
+  val body: String,
+  /** NLT-rendered image URL, or null. */
+  val imageUrl: String? = null,
+  /** 0–2 CTAs (Phase 10 v1 scope). */
+  val ctas: List<InAppCtaDto>,
+  /**
+   * Host-app-driven custom JSON. Same loosely-typed shape as the push
+   * `data` slot — values may themselves be deeply nested maps / lists.
+   */
+  val customData: Map<String?, Any?>? = null,
+  /** ISO-8601 UTC expiry instant. Null when the message has no expiry. */
+  val expiresAt: String? = null,
+  /** Host-app sort / queue priority. Higher = more important. */
+  val priority: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): InAppMessageDto {
+      val id = pigeonVar_list[0] as String
+      val messageId = pigeonVar_list[1] as String
+      val placement = pigeonVar_list[2] as String
+      val title = pigeonVar_list[3] as String
+      val body = pigeonVar_list[4] as String
+      val imageUrl = pigeonVar_list[5] as String?
+      val ctas = pigeonVar_list[6] as List<InAppCtaDto>
+      val customData = pigeonVar_list[7] as Map<String?, Any?>?
+      val expiresAt = pigeonVar_list[8] as String?
+      val priority = pigeonVar_list[9] as Long
+      return InAppMessageDto(id, messageId, placement, title, body, imageUrl, ctas, customData, expiresAt, priority)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      messageId,
+      placement,
+      title,
+      body,
+      imageUrl,
+      ctas,
+      customData,
+      expiresAt,
+      priority,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as InAppMessageDto
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.id, other.id) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.messageId, other.messageId) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.placement, other.placement) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.title, other.title) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.body, other.body) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.imageUrl, other.imageUrl) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.ctas, other.ctas) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.customData, other.customData) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.expiresAt, other.expiresAt) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.priority, other.priority)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.id)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.messageId)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.placement)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.title)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.body)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.imageUrl)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.ctas)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.customData)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.expiresAt)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.priority)
+    return result
+  }
+  override fun toString(): String {
+    return "InAppMessageDto(id=$id, messageId=$messageId, placement=$placement, title=$title, body=$body, imageUrl=$imageUrl, ctas=$ctas, customData=$customData, expiresAt=$expiresAt, priority=$priority)"
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class InAppMessageReceivedEventDto (
+  val message: InAppMessageDto
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): InAppMessageReceivedEventDto {
+      val message = pigeonVar_list[0] as InAppMessageDto
+      return InAppMessageReceivedEventDto(message)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      message,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as InAppMessageReceivedEventDto
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.message, other.message)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.message)
+    return result
+  }
+  override fun toString(): String {
+    return "InAppMessageReceivedEventDto(message=$message)"
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class InAppMessageDismissedEventDto (
+  val messageId: String,
+  val reason: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): InAppMessageDismissedEventDto {
+      val messageId = pigeonVar_list[0] as String
+      val reason = pigeonVar_list[1] as String?
+      return InAppMessageDismissedEventDto(messageId, reason)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      messageId,
+      reason,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as InAppMessageDismissedEventDto
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.messageId, other.messageId) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.reason, other.reason)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.messageId)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.reason)
+    return result
+  }
+  override fun toString(): String {
+    return "InAppMessageDismissedEventDto(messageId=$messageId, reason=$reason)"
+  }
+}
+
+/**
+ * Result of [PyrxSynapseHostApi.inAppShow]. Mirrors the iOS
+ * `Synapse.ShowToken` and Android `ShowToken` — both opaque handles
+ * that unregister the callback when closed.
+ *
+ * Pigeon does not synthesise opaque-handle types across languages, so
+ * we ship a small DTO carrying the (placement, subscriptionId) pair
+ * the native side needs to look up the registration for
+ * [PyrxSynapseHostApi.inAppUnregisterShow]. The Dart-side `ShowToken`
+ * class wraps this DTO and exposes `dispose()` — the host app never
+ * sees the subscription id.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class InAppShowTokenDto (
+  val placement: String,
+  val subscriptionId: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): InAppShowTokenDto {
+      val placement = pigeonVar_list[0] as String
+      val subscriptionId = pigeonVar_list[1] as Long
+      return InAppShowTokenDto(placement, subscriptionId)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      placement,
+      subscriptionId,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as InAppShowTokenDto
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.placement, other.placement) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.subscriptionId, other.subscriptionId)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.placement)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.subscriptionId)
+    return result
+  }
+  override fun toString(): String {
+    return "InAppShowTokenDto(placement=$placement, subscriptionId=$subscriptionId)"
+  }
+}
+
+/**
+ * Single wire envelope for the 7-event observer surface. Exactly one of
  * the `*Payload` fields is non-null per envelope, matching [kind].
  *
  * We use a flat-fields envelope instead of a Dart sealed class so
@@ -745,7 +1051,9 @@ data class PyrxEventEnvelope (
   val pushClicked: PushClickedEventDto? = null,
   val pushReceivedColdStart: PushReceivedEventDto? = null,
   val queueDrained: QueueDrainedEventDto? = null,
-  val identityChanged: IdentityChangedEventDto? = null
+  val identityChanged: IdentityChangedEventDto? = null,
+  val inAppMessageReceived: InAppMessageReceivedEventDto? = null,
+  val inAppMessageDismissed: InAppMessageDismissedEventDto? = null
 )
  {
   companion object {
@@ -756,7 +1064,9 @@ data class PyrxEventEnvelope (
       val pushReceivedColdStart = pigeonVar_list[3] as PushReceivedEventDto?
       val queueDrained = pigeonVar_list[4] as QueueDrainedEventDto?
       val identityChanged = pigeonVar_list[5] as IdentityChangedEventDto?
-      return PyrxEventEnvelope(kind, pushReceived, pushClicked, pushReceivedColdStart, queueDrained, identityChanged)
+      val inAppMessageReceived = pigeonVar_list[6] as InAppMessageReceivedEventDto?
+      val inAppMessageDismissed = pigeonVar_list[7] as InAppMessageDismissedEventDto?
+      return PyrxEventEnvelope(kind, pushReceived, pushClicked, pushReceivedColdStart, queueDrained, identityChanged, inAppMessageReceived, inAppMessageDismissed)
     }
   }
   fun toList(): List<Any?> {
@@ -767,6 +1077,8 @@ data class PyrxEventEnvelope (
       pushReceivedColdStart,
       queueDrained,
       identityChanged,
+      inAppMessageReceived,
+      inAppMessageDismissed,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -777,7 +1089,7 @@ data class PyrxEventEnvelope (
       return true
     }
     val other = other as PyrxEventEnvelope
-    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.kind, other.kind) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushReceived, other.pushReceived) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushClicked, other.pushClicked) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushReceivedColdStart, other.pushReceivedColdStart) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.queueDrained, other.queueDrained) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.identityChanged, other.identityChanged)
+    return PyrxSynapseMessagesPigeonUtils.deepEquals(this.kind, other.kind) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushReceived, other.pushReceived) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushClicked, other.pushClicked) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.pushReceivedColdStart, other.pushReceivedColdStart) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.queueDrained, other.queueDrained) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.identityChanged, other.identityChanged) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.inAppMessageReceived, other.inAppMessageReceived) && PyrxSynapseMessagesPigeonUtils.deepEquals(this.inAppMessageDismissed, other.inAppMessageDismissed)
   }
 
   override fun hashCode(): Int {
@@ -788,10 +1100,12 @@ data class PyrxEventEnvelope (
     result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.pushReceivedColdStart)
     result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.queueDrained)
     result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.identityChanged)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.inAppMessageReceived)
+    result = 31 * result + PyrxSynapseMessagesPigeonUtils.deepHash(this.inAppMessageDismissed)
     return result
   }
   override fun toString(): String {
-    return "PyrxEventEnvelope(kind=$kind, pushReceived=$pushReceived, pushClicked=$pushClicked, pushReceivedColdStart=$pushReceivedColdStart, queueDrained=$queueDrained, identityChanged=$identityChanged)"
+    return "PyrxEventEnvelope(kind=$kind, pushReceived=$pushReceived, pushClicked=$pushClicked, pushReceivedColdStart=$pushReceivedColdStart, queueDrained=$queueDrained, identityChanged=$identityChanged, inAppMessageReceived=$inAppMessageReceived, inAppMessageDismissed=$inAppMessageDismissed)"
   }
 }
 private open class PyrxSynapseMessagesPigeonCodec : StandardMessageCodec() {
@@ -849,6 +1163,31 @@ private open class PyrxSynapseMessagesPigeonCodec : StandardMessageCodec() {
       }
       139.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
+          InAppCtaDto.fromList(it)
+        }
+      }
+      140.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          InAppMessageDto.fromList(it)
+        }
+      }
+      141.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          InAppMessageReceivedEventDto.fromList(it)
+        }
+      }
+      142.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          InAppMessageDismissedEventDto.fromList(it)
+        }
+      }
+      143.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          InAppShowTokenDto.fromList(it)
+        }
+      }
+      144.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
           PyrxEventEnvelope.fromList(it)
         }
       }
@@ -897,8 +1236,28 @@ private open class PyrxSynapseMessagesPigeonCodec : StandardMessageCodec() {
         stream.write(138)
         writeValue(stream, value.toList())
       }
-      is PyrxEventEnvelope -> {
+      is InAppCtaDto -> {
         stream.write(139)
+        writeValue(stream, value.toList())
+      }
+      is InAppMessageDto -> {
+        stream.write(140)
+        writeValue(stream, value.toList())
+      }
+      is InAppMessageReceivedEventDto -> {
+        stream.write(141)
+        writeValue(stream, value.toList())
+      }
+      is InAppMessageDismissedEventDto -> {
+        stream.write(142)
+        writeValue(stream, value.toList())
+      }
+      is InAppShowTokenDto -> {
+        stream.write(143)
+        writeValue(stream, value.toList())
+      }
+      is PyrxEventEnvelope -> {
+        stream.write(144)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -934,6 +1293,48 @@ interface PyrxSynapseHostApi {
   fun registerForPushNotifications(callback: (Result<Unit>) -> Unit)
   fun setTrackingEnabled(enabled: Boolean, callback: (Result<Unit>) -> Unit)
   fun deleteUser(callback: (Result<Unit>) -> Unit)
+  /**
+   * Register a render callback for [placement]. The native side
+   * dispatches fresh messages through the [onInAppMessageReceived]
+   * event stream; the Dart umbrella routes them to the per-token
+   * callback by matching [InAppShowTokenDto.subscriptionId] against
+   * `InAppMessage.id`/placement.
+   *
+   * Returns the [InAppShowTokenDto] handle the Dart umbrella wraps in
+   * a `ShowToken` that calls [inAppUnregisterShow] on dispose.
+   */
+  fun inAppShow(placement: String, callback: (Result<InAppShowTokenDto>) -> Unit)
+  /**
+   * Unregister a callback previously registered via [inAppShow]. Safe
+   * to call with an unknown id — native side no-ops.
+   */
+  fun inAppUnregisterShow(placement: String, subscriptionId: Long, callback: (Result<Unit>) -> Unit)
+  /**
+   * Sync-style read of currently-active messages from the in-memory
+   * cache. Does NOT trigger a poll. Pass `null` for [placement] to
+   * return every cached message (sorted by priority desc, then expiry
+   * asc to match the cross-SDK contract).
+   */
+  fun inAppGetActive(placement: String?, callback: (Result<List<InAppMessageDto>>) -> Unit)
+  /**
+   * Mark a message dismissed. Evicts from cache, fires the
+   * [onInAppMessageDismissed] event, and POSTs `/v1/in-app/log` with
+   * `event="dismissed"`. [reason] is host-side observer metadata only
+   * — it does NOT cross the wire (PR-1 backend has no `reason` field).
+   */
+  fun inAppDismiss(messageId: String, reason: String?, callback: (Result<Unit>) -> Unit)
+  /**
+   * Mark a message interacted (a CTA was tapped). POSTs
+   * `/v1/in-app/log` with `event="interacted"` and `cta_id=ctaId`.
+   * Does NOT evict from cache.
+   */
+  fun inAppMarkInteracted(messageId: String, ctaId: String, callback: (Result<Unit>) -> Unit)
+  /**
+   * Force an immediate poll. Coalesces with any in-flight poll
+   * (lifecycle rule 4). No-op when no placements are registered or
+   * the SDK is not yet identified.
+   */
+  fun inAppRefresh(callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by PyrxSynapseHostApi. */
@@ -1161,6 +1562,123 @@ interface PyrxSynapseHostApi {
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             api.deleteUser{ result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppShow$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val placementArg = args[0] as String
+            api.inAppShow(placementArg) { result: Result<InAppShowTokenDto> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppUnregisterShow$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val placementArg = args[0] as String
+            val subscriptionIdArg = args[1] as Long
+            api.inAppUnregisterShow(placementArg, subscriptionIdArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppGetActive$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val placementArg = args[0] as String?
+            api.inAppGetActive(placementArg) { result: Result<List<InAppMessageDto>> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppDismiss$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val messageIdArg = args[0] as String
+            val reasonArg = args[1] as String?
+            api.inAppDismiss(messageIdArg, reasonArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppMarkInteracted$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val messageIdArg = args[0] as String
+            val ctaIdArg = args[1] as String
+            api.inAppMarkInteracted(messageIdArg, ctaIdArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(PyrxSynapseMessagesPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppRefresh$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.inAppRefresh{ result: Result<Unit> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(PyrxSynapseMessagesPigeonUtils.wrapError(error))

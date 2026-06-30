@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import tech.pyrx.synapse.Pyrx
 import tech.pyrx.synapse.flutter.generated.IdentityChangedEventDto
 import tech.pyrx.synapse.flutter.generated.IdentitySnapshotDto
+import tech.pyrx.synapse.flutter.generated.InAppMessageDismissedEventDto
+import tech.pyrx.synapse.flutter.generated.InAppMessageReceivedEventDto
 import tech.pyrx.synapse.flutter.generated.PigeonEventSink
 import tech.pyrx.synapse.flutter.generated.PushClickedEventDto
 import tech.pyrx.synapse.flutter.generated.PushReceivedEventDto
@@ -103,6 +105,19 @@ internal class PyrxEventStreamHandler : StreamEventsStreamHandler() {
             identityChanged = IdentityChangedEventDto(
                 before = event.before?.let { encodeIdentity(it) },
                 after = encodeIdentity(event.after),
+            ),
+        )
+        is PyrxEvent.InAppMessageReceived -> PyrxEventEnvelope(
+            kind = PyrxEventKind.IN_APP_MESSAGE_RECEIVED,
+            inAppMessageReceived = InAppMessageReceivedEventDto(
+                message = encodeInAppMessage(event.message),
+            ),
+        )
+        is PyrxEvent.InAppMessageDismissed -> PyrxEventEnvelope(
+            kind = PyrxEventKind.IN_APP_MESSAGE_DISMISSED,
+            inAppMessageDismissed = InAppMessageDismissedEventDto(
+                messageId = event.messageId,
+                reason = event.reason,
             ),
         )
     }
