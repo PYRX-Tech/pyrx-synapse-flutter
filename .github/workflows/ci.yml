@@ -22,7 +22,6 @@ jobs:
         with:
           channel: stable
           # Floor per Phase 9.3 plan D2 — Flutter 3.16+ / Dart 3.2+
-          flutter-version: "3.35.x"
           cache: true
 
       - name: Activate melos
@@ -49,7 +48,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: "3.35.x"
           cache: true
 
       - name: Activate pigeon
@@ -86,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: "3.35.x", cache: true }
+        with: { channel: stable, cache: true }
       - name: Activate melos + bootstrap
         run: |
           dart pub global activate melos
@@ -110,7 +108,7 @@ jobs:
       - uses: android-actions/setup-android@v3
         with: { packages: 'platform-tools platforms;android-34 build-tools;34.0.0' }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: "3.35.x", cache: true }
+        with: { channel: stable, cache: true }
       - name: Activate melos + bootstrap
         run: |
           dart pub global activate melos
