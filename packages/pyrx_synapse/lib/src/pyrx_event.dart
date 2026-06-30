@@ -41,6 +41,8 @@ import 'payloads/payloads.dart';
 /// - [PushReceivedColdStart]   — cold-start push (app launched FROM tap)
 /// - [QueueDrained]            — internal event queue flushed
 /// - [IdentityChanged]         — identify / alias / logout completed
+/// - [InAppMessageReceived]    — a fresh in-app message arrived (Phase 10 PR-2b)
+/// - [InAppMessageDismissed]   — an in-app message was dismissed   (Phase 10 PR-2b)
 ///
 /// Use `switch` for exhaustive pattern matching; the compiler will
 /// flag any new variant (none expected without a native-side change)
@@ -52,7 +54,7 @@ sealed class PyrxEvent {
   /// Decode the Pigeon-shaped [PyrxEventEnvelope] into the typed
   /// sealed leaf. Returns `null` for envelope kinds that don't have a
   /// matching Dart leaf yet — by design, so a future-compatible
-  /// native SDK that adds a 6th `PyrxEventKind` case won't crash
+  /// native SDK that adds an 8th `PyrxEventKind` case won't crash
   /// older Flutter consumers. The merged stream in [Synapse.events]
   /// silently drops `null` returns so apps don't see undecodable
   /// events.
@@ -112,6 +114,29 @@ sealed class PyrxEvent {
           before:
               dto.before == null ? null : IdentitySnapshot.fromDto(dto.before!),
           after: IdentitySnapshot.fromDto(dto.after),
+        );
+
+      case PyrxEventKind.inAppMessageReceived:
+        final dto = envelope.inAppMessageReceived;
+        if (dto == null) {
+          throw StateError(
+            'PyrxEventEnvelope.kind=inAppMessageReceived but '
+            'inAppMessageReceived is null',
+          );
+        }
+        return InAppMessageReceived(InAppMessage.fromDto(dto.message));
+
+      case PyrxEventKind.inAppMessageDismissed:
+        final dto = envelope.inAppMessageDismissed;
+        if (dto == null) {
+          throw StateError(
+            'PyrxEventEnvelope.kind=inAppMessageDismissed but '
+            'inAppMessageDismissed is null',
+          );
+        }
+        return InAppMessageDismissed(
+          messageId: dto.messageId,
+          reason: dto.reason,
         );
     }
   }
@@ -236,4 +261,76 @@ final class IdentityChanged extends PyrxEvent {
 
   @override
   String toString() => 'IdentityChanged(before: $before, after: $after)';
+}
+
+/// Phase 10 PR-2b — a new in-app message arrived in the SDK's cache and
+/// is about to be dispatched to a registered render callback.
+///
+/// Fires ONCE per assignment id — the SDK dedupes by [InAppMessage.id]
+/// so re-polling the same eligible message does NOT re-fire. Identity
+/// switch (`identify` to a different external id) clears the dedupe
+/// set native-side so the new contact's messages get fresh emissions.
+///
+/// Fires BEFORE the per-placement render callback runs so analytics
+/// middleware can observe every in-app message globally without
+/// registering a callback for every placement.
+///
+/// Symmetric with the browser SDK's `inAppMessageReceived` observer
+/// event and the iOS / Android SDK's equivalents per ADR-0009 D5.
+final class InAppMessageReceived extends PyrxEvent {
+  const InAppMessageReceived(this.message);
+
+  final InAppMessage message;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InAppMessageReceived && other.message == message;
+
+  @override
+  int get hashCode => Object.hash(InAppMessageReceived, message);
+
+  @override
+  String toString() => 'InAppMessageReceived($message)';
+}
+
+/// Phase 10 PR-2b — an in-app message was dismissed.
+///
+/// Fires once per [Synapse.inApp.dismiss] call (host-initiated). Reserved
+/// for forward-compat with future expiry-driven auto-dismiss.
+///
+/// [reason] is the host-supplied free-form string (e.g.
+/// `"user_dismissed"`, `"cta_dismissed"`, `"expired"`). It is NOT
+/// crossed to the backend today — the PR-1 `/v1/in-app/log` schema
+/// does not carry it — but observers receive it for analytics.
+///
+/// Symmetric with the browser SDK's `inAppMessageDismissed` observer
+/// event per ADR-0009 D5.
+final class InAppMessageDismissed extends PyrxEvent {
+  const InAppMessageDismissed({required this.messageId, required this.reason});
+
+  /// The assignment id ([InAppMessage.id]) of the dismissed message.
+  /// Note: when [Synapse.inApp.dismiss] is called with an unknown id,
+  /// the SDK still emits this event — the observer matches the call
+  /// semantics, not the cache state.
+  final String messageId;
+
+  /// Host-supplied free-form reason. The SDK does NOT validate or
+  /// interpret it.
+  final String? reason;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is InAppMessageDismissed &&
+        other.messageId == messageId &&
+        other.reason == reason;
+  }
+
+  @override
+  int get hashCode => Object.hash(InAppMessageDismissed, messageId, reason);
+
+  @override
+  String toString() =>
+      'InAppMessageDismissed(messageId: $messageId, reason: $reason)';
 }

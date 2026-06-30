@@ -9,7 +9,7 @@
 // within 0.1.x; cap below 1.0 to bound major-version risk.
 
 group 'tech.pyrx.synapse.flutter'
-version '0.1.0'
+version '0.2.0'
 
 buildscript {
     ext.kotlin_version = '1.9.22'
@@ -56,11 +56,13 @@ android {
     }
 
     dependencies {
-        // Phase 9.2.1 release floor (synapse-core ships the observer
-        // SharedFlow; synapse-push ships PyrxPush.install + the
-        // PyrxMessagingService).
-        implementation 'tech.pyrx.synapse:synapse-core:0.1.4'
-        implementation 'tech.pyrx.synapse:synapse-push:0.1.4'
+        // Phase 10 PR-2b release floor (synapse-inapp ships the
+        // Pyrx.inApp.* surface + the two InAppMessage{Received,
+        // Dismissed} observer events on synapse-core). Older 0.1.x
+        // versions would fail to resolve the inapp package.
+        implementation 'tech.pyrx.synapse:synapse-core:0.2.0'
+        implementation 'tech.pyrx.synapse:synapse-push:0.2.0'
+        implementation 'tech.pyrx.synapse:synapse-inapp:0.2.0'
 
         implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
         implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2"

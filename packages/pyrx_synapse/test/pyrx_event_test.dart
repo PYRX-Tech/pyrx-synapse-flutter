@@ -297,11 +297,13 @@ IdentitySnapshot _idSnapshot() => IdentitySnapshot(
 
 /// Exhaustiveness-witness. Adding a new PyrxEvent leaf without
 /// updating this switch breaks the build — exactly the contract we
-/// want.
+/// want. Updated in Phase 10 PR-2b to cover the two in-app variants.
 String _tagOf(PyrxEvent ev) => switch (ev) {
       PushReceived() => 'received',
       PushClicked() => 'clicked',
       PushReceivedColdStart() => 'cold',
       QueueDrained() => 'drained',
       IdentityChanged() => 'identity',
+      InAppMessageReceived() => 'in_app_received',
+      InAppMessageDismissed() => 'in_app_dismissed',
     };

@@ -54,6 +54,7 @@
 ///   layer).
 library pyrx_synapse;
 
+export 'src/in_app.dart' show InAppRenderCallback, ShowToken, SynapseInApp;
 export 'src/payloads/payloads.dart';
 export 'src/pyrx_attribute_value.dart';
 export 'src/pyrx_event.dart';

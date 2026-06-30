@@ -5,7 +5,7 @@ description: >-
   (`pyrx_synapse_ios`, `pyrx_synapse_android`) extend, plus the Pigeon
   spec that codegens the type-safe MethodChannel + EventChannel layer
   between Dart and the iOS / Android native SDKs.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues

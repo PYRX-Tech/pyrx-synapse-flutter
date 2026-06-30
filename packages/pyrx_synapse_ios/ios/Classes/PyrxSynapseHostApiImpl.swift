@@ -279,6 +279,115 @@ final class PyrxSynapseHostApiImpl: PyrxSynapseHostApi {
     }
   }
 
+  // MARK: - In-app messaging (Phase 10 PR-2b)
+  //
+  // Five methods that delegate to `Synapse.InApp.*` — the public iOS
+  // facade in PYRXSynapse 0.2.0. The per-placement render callback
+  // we register with `Synapse.InApp.show` is a no-op: the per-message
+  // dispatch into Dart happens via the `inAppMessageReceived` envelope
+  // on the shared event stream (PyrxEventStreamHandler), so Flutter
+  // consumers never see two dispatch paths for the same message. The
+  // callback only exists to keep the placement alive on the native
+  // manager (so it keeps polling).
+  //
+  // We hand Dart a monotonic Flutter-side subscription id and stash
+  // the corresponding `Synapse.ShowToken` in a dictionary; the
+  // companion `inAppUnregisterShow` looks the token up by id and
+  // cancels it. This indirection exists because `Synapse.ShowToken`'s
+  // `subscriptionId` is private — we can't surface it to Dart even
+  // though the cross-SDK contract names a subscription handle.
+
+  /// Monotonically-increasing Flutter-side subscription id. Allocated
+  /// per `inAppShow` call; never reused. Atomic via the `tokensLock`.
+  private var nextSubscriptionId: Int64 = 0
+  private var tokensById: [Int64: Synapse.ShowToken] = [:]
+  private let tokensLock = NSLock()
+
+  func inAppShow(
+    placement: String,
+    completion: @escaping (Result<InAppShowTokenDto, Error>) -> Void
+  ) {
+    Task {
+      let token = await Synapse.InApp.show(placement: placement) { _ in
+        // No-op — the Dart umbrella dispatches per-placement via the
+        // shared event stream's `inAppMessageReceived` envelope. The
+        // callback is required by `Synapse.InApp.show` so the manager
+        // tracks the placement; we don't need to do anything here.
+      }
+
+      let id = await MainActor.run { () -> Int64 in
+        tokensLock.lock()
+        defer { tokensLock.unlock() }
+        nextSubscriptionId &+= 1
+        let id = nextSubscriptionId
+        tokensById[id] = token
+        return id
+      }
+
+      completion(.success(InAppShowTokenDto(
+        placement: placement,
+        subscriptionId: id
+      )))
+    }
+  }
+
+  func inAppUnregisterShow(
+    placement: String,
+    subscriptionId: Int64,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    let token: Synapse.ShowToken? = {
+      tokensLock.lock()
+      defer { tokensLock.unlock() }
+      return tokensById.removeValue(forKey: subscriptionId)
+    }()
+    // `cancel()` is idempotent; calling on the deinit-already-fired
+    // path is a silent no-op. Safe to call here even if Dart racing
+    // with two `dispose()` from different code paths drops the
+    // entry from the dictionary first.
+    token?.cancel()
+    completion(.success(()))
+  }
+
+  func inAppGetActive(
+    placement: String?,
+    completion: @escaping (Result<[InAppMessageDto], Error>) -> Void
+  ) {
+    Task {
+      let messages = await Synapse.InApp.getActive(placement: placement)
+      completion(.success(messages.map(Self.encodeInAppMessage)))
+    }
+  }
+
+  func inAppDismiss(
+    messageId: String,
+    reason: String?,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    Task {
+      await Synapse.InApp.dismiss(messageId: messageId, reason: reason)
+      completion(.success(()))
+    }
+  }
+
+  func inAppMarkInteracted(
+    messageId: String,
+    ctaId: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    Task {
+      await Synapse.InApp.markInteracted(messageId: messageId, ctaId: ctaId)
+      completion(.success(()))
+    }
+  }
+
+  func inAppRefresh(completion: @escaping (Result<Void, Error>) -> Void) {
+    Task {
+      await Synapse.InApp.refresh()
+      completion(.success(()))
+    }
+  }
+
   // MARK: - Helpers
 
   /// Translate optional level-string into the SDK enum. Returns nil for
@@ -363,4 +472,73 @@ final class PyrxSynapseHostApiImpl: PyrxSynapseHostApi {
   private static func flutterError(code: String, message: String?) -> FlutterError {
     FlutterError(code: code, message: message, details: nil)
   }
+
+  // MARK: - In-app messaging encoders
+
+  /// Convert a published `InAppMessage` into the Pigeon-wire DTO.
+  /// CTAs lose nothing; `customData` JSONValues are projected onto the
+  /// `Map<String?, Object?>` Pigeon shape (same flattening as
+  /// `pyrx_attrs` on push payloads). `expiresAt` is rendered as ISO-8601
+  /// UTC — the same format the backend emits.
+  static func encodeInAppMessage(_ message: InAppMessage) -> InAppMessageDto {
+    return InAppMessageDto(
+      id: message.id,
+      messageId: message.messageId,
+      placement: message.placement,
+      title: message.title,
+      body: message.body,
+      imageUrl: message.imageUrl,
+      ctas: message.ctas.map(encodeInAppCta),
+      customData: message.customData.map(encodeCustomDataMap),
+      expiresAt: message.expiresAt.map(iso8601.string(from:)),
+      priority: Int64(message.priority)
+    )
+  }
+
+  private static func encodeInAppCta(_ cta: InAppCta) -> InAppCtaDto {
+    return InAppCtaDto(
+      id: cta.id,
+      label: cta.label,
+      actionType: cta.actionType.rawValue,
+      actionPayload: cta.actionPayload
+    )
+  }
+
+  /// Project a typed JSONValue map onto the loosely-typed Pigeon
+  /// `Map<String?, Object?>` shape. NSNull stands in for nil so the
+  /// Pigeon codec round-trips the explicit-null case faithfully.
+  private static func encodeCustomDataMap(_ map: [String: JSONValue]) -> [String?: Any?] {
+    var out: [String?: Any?] = [:]
+    for (k, v) in map {
+      out[k] = encodeJSONValue(v)
+    }
+    return out
+  }
+
+  private static func encodeJSONValue(_ value: JSONValue) -> Any {
+    switch value {
+    case .null:
+      return NSNull()
+    case let .string(s):
+      return s
+    case let .int(i):
+      return i
+    case let .double(d):
+      return d
+    case let .bool(b):
+      return b
+    case let .array(arr):
+      return arr.map { encodeJSONValue($0) }
+    case let .object(obj):
+      var dict: [String: Any] = [:]
+      for (k, v) in obj { dict[k] = encodeJSONValue(v) }
+      return dict
+    }
+  }
+
+  private static let iso8601: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+  }()
 }

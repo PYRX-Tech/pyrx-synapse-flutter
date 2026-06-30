@@ -34,6 +34,10 @@ Future<void> main() async {
           'identity ${before?.externalId ?? "(none)"} → '
           '${after.externalId ?? "(anon)"}',
         );
+      case InAppMessageReceived(:final message):
+        debugPrint('in-app: "${message.title}" @ ${message.placement}');
+      case InAppMessageDismissed(:final messageId, :final reason):
+        debugPrint('in-app dismissed: $messageId (${reason ?? "no reason"})');
     }
   });
 
@@ -45,6 +49,13 @@ Future<void> main() async {
   final status = await Synapse.requestPushPermission();
   debugPrint('push permission: $status');
 
+  // 5. Register a render callback for an in-app placement.
+  //    Phase 10 PR-2b — the SDK delivers data; the host draws the UI.
+  final token = await Synapse.inApp.show('home_banner', (message) {
+    debugPrint('render banner: ${message.title} — ${message.body}');
+  });
+
   // Tear down on app exit:
+  await token.dispose();
   await subscription.cancel();
 }

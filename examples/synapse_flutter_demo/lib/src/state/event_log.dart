@@ -9,6 +9,8 @@
 //   - `coldStartCount`       — count of PushReceivedColdStart events seen
 //   - `queueDrainCount`      — count of QueueDrained events seen
 //   - `identityChangeCount`  — count of IdentityChanged events seen
+//   - `inAppReceivedCount`   — count of InAppMessageReceived events seen (Phase 10 PR-2b)
+//   - `inAppDismissedCount`  — count of InAppMessageDismissed events seen (Phase 10 PR-2b)
 //
 // The screens consume this via `ListenableBuilder` (or by reading the
 // counters directly inside their own StreamBuilder/setState patterns).
@@ -46,6 +48,10 @@ final class ObservedEventEntry extends EventLogEntry {
       QueueDrained(:final count) => '[$t] QueueDrained flushed=$count',
       IdentityChanged(:final before, :final after) =>
         '[$t] IdentityChanged ${before?.externalId ?? "(none)"} → ${after.externalId ?? "(anon)"}',
+      InAppMessageReceived(:final message) =>
+        '[$t] InAppMessageReceived "${message.title}" (${message.placement})',
+      InAppMessageDismissed(:final messageId, :final reason) =>
+        '[$t] InAppMessageDismissed $messageId ${reason ?? "(no reason)"}',
     };
   }
 }
@@ -82,12 +88,16 @@ class EventLog extends ChangeNotifier {
   int _coldStartCount = 0;
   int _queueDrainCount = 0;
   int _identityChangeCount = 0;
+  int _inAppReceivedCount = 0;
+  int _inAppDismissedCount = 0;
 
   int get pushReceivedCount => _pushReceivedCount;
   int get pushClickedCount => _pushClickedCount;
   int get coldStartCount => _coldStartCount;
   int get queueDrainCount => _queueDrainCount;
   int get identityChangeCount => _identityChangeCount;
+  int get inAppReceivedCount => _inAppReceivedCount;
+  int get inAppDismissedCount => _inAppDismissedCount;
 
   IdentitySnapshot? _lastIdentitySnapshot;
   IdentitySnapshot? get lastIdentitySnapshot => _lastIdentitySnapshot;
@@ -107,6 +117,10 @@ class EventLog extends ChangeNotifier {
       case IdentityChanged(:final after):
         _identityChangeCount += 1;
         _lastIdentitySnapshot = after;
+      case InAppMessageReceived():
+        _inAppReceivedCount += 1;
+      case InAppMessageDismissed():
+        _inAppDismissedCount += 1;
     }
     _entries.insert(0, ObservedEventEntry(event));
     // Cap the log at 200 entries so the observer screen stays snappy.

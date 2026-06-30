@@ -85,6 +85,31 @@ class MethodChannelPyrxSynapse extends PyrxSynapsePlatform {
   @override
   Future<void> deleteUser() => _hostApi.deleteUser();
 
+  // ----- In-app messaging (Phase 10 PR-2b) ---------------------------
+
+  @override
+  Future<InAppShowTokenDto> inAppShow(String placement) =>
+      _hostApi.inAppShow(placement);
+
+  @override
+  Future<void> inAppUnregisterShow(String placement, int subscriptionId) =>
+      _hostApi.inAppUnregisterShow(placement, subscriptionId);
+
+  @override
+  Future<List<InAppMessageDto>> inAppGetActive(String? placement) =>
+      _hostApi.inAppGetActive(placement);
+
+  @override
+  Future<void> inAppDismiss(String messageId, String? reason) =>
+      _hostApi.inAppDismiss(messageId, reason);
+
+  @override
+  Future<void> inAppMarkInteracted(String messageId, String ctaId) =>
+      _hostApi.inAppMarkInteracted(messageId, ctaId);
+
+  @override
+  Future<void> inAppRefresh() => _hostApi.inAppRefresh();
+
   // ----- Events stream ----------------------------------------------
 
   @override

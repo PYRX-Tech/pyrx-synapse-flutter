@@ -96,6 +96,24 @@ final class PyrxEventStreamHandler: StreamEventsStreamHandler {
           after: encodeIdentity(after)
         )
       )
+    case let .inAppMessageReceived(message):
+      // Phase 10 PR-2b — the in-app fire-point on the native observer
+      // stream. The umbrella's `_ShowRegistry` re-dispatches by
+      // placement; here we just pack the message into the envelope.
+      return PyrxEventEnvelope(
+        kind: .inAppMessageReceived,
+        inAppMessageReceived: InAppMessageReceivedEventDto(
+          message: PyrxSynapseHostApiImpl.encodeInAppMessage(message)
+        )
+      )
+    case let .inAppMessageDismissed(messageId, reason):
+      return PyrxEventEnvelope(
+        kind: .inAppMessageDismissed,
+        inAppMessageDismissed: InAppMessageDismissedEventDto(
+          messageId: messageId,
+          reason: reason
+        )
+      )
     }
   }
 

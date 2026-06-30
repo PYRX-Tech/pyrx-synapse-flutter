@@ -142,17 +142,21 @@ void main() {
       expect(env.identityChanged?.after.externalId, 'user-42');
     });
 
-    test('all five PyrxEventKind cases exist (taxonomy is closed)', () {
+    test('all seven PyrxEventKind cases exist (taxonomy is closed)', () {
       // Compile-time exhaustiveness — if PYRXSynapse / synapse-core
-      // add a sixth case, this test will fail to compile and force a
-      // conscious decision about the Dart-side mapping.
+      // add an eighth case, this test will fail to compile and force
+      // a conscious decision about the Dart-side mapping. Phase 10
+      // PR-2b extended the taxonomy from 5 to 7 with the two in-app
+      // variants.
       const kinds = PyrxEventKind.values;
-      expect(kinds, hasLength(5));
+      expect(kinds, hasLength(7));
       expect(kinds, contains(PyrxEventKind.pushReceived));
       expect(kinds, contains(PyrxEventKind.pushClicked));
       expect(kinds, contains(PyrxEventKind.pushReceivedColdStart));
       expect(kinds, contains(PyrxEventKind.queueDrained));
       expect(kinds, contains(PyrxEventKind.identityChanged));
+      expect(kinds, contains(PyrxEventKind.inAppMessageReceived));
+      expect(kinds, contains(PyrxEventKind.inAppMessageDismissed));
     });
   });
 

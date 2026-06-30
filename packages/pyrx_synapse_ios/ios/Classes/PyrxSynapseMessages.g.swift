@@ -198,12 +198,18 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
 /// Dart consumer wraps a `default:` branch so unknown variants from
 /// future native SDKs are tolerated; the umbrella's `Stream<PyrxEvent>`
 /// drops unknown envelopes silently with a debug log.
+///
+/// Phase 10 PR-2b (ADR-0009 D5) extends the 5-event taxonomy to 7 by
+/// adding [inAppMessageReceived] + [inAppMessageDismissed] — symmetric
+/// with the browser/iOS/Android SDKs' equivalent events.
 enum PyrxEventKind: Int, CaseIterable {
   case pushReceived = 0
   case pushClicked = 1
   case pushReceivedColdStart = 2
   case queueDrained = 3
   case identityChanged = 4
+  case inAppMessageReceived = 5
+  case inAppMessageDismissed = 6
 }
 
 /// Arguments for [PyrxSynapseHostApi.initialize].
@@ -712,7 +718,299 @@ struct IdentityChangedEventDto: Hashable, CustomStringConvertible {
   }
 }
 
-/// Single wire envelope for the 5-event observer surface. Exactly one of
+/// One call-to-action button on an [InAppMessageDto]. NLT source has
+/// already been resolved against the current contact at fetch time —
+/// `label` and `actionPayload` are ready to render verbatim.
+///
+/// `actionType` is one of: `"deep_link"`, `"dismiss"`, `"webview"`,
+/// `"callback"` (lowercase snake_case, matching the wire). Pigeon's
+/// codec stays string-based so the discriminator round-trips losslessly
+/// across the bridge without per-language enum translation.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct InAppCtaDto: Hashable, CustomStringConvertible {
+  var id: String
+  var label: String
+  var actionType: String
+  var actionPayload: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> InAppCtaDto? {
+    let id = pigeonVar_list[0] as! String
+    let label = pigeonVar_list[1] as! String
+    let actionType = pigeonVar_list[2] as! String
+    let actionPayload: String? = nilOrValue(pigeonVar_list[3])
+
+    return InAppCtaDto(
+      id: id,
+      label: label,
+      actionType: actionType,
+      actionPayload: actionPayload
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      label,
+      actionType,
+      actionPayload,
+    ]
+  }
+  static func == (lhs: InAppCtaDto, rhs: InAppCtaDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.id, rhs.id) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.label, rhs.label) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.actionType, rhs.actionType) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.actionPayload, rhs.actionPayload)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("InAppCtaDto")
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: id, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: label, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: actionType, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: actionPayload, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "InAppCtaDto(id: \(String(describing: id)), label: \(String(describing: label)), actionType: \(String(describing: actionType)), actionPayload: \(String(describing: actionPayload)))"
+  }
+}
+
+/// One in-app message delivered to a registered render callback.
+///
+/// Mirrors the iOS `InAppMessage` struct + Android `InAppMessage` data
+/// class field-for-field per ADR-0009 D5. The host app draws the UI —
+/// the SDK does NOT render (ADR-0008 D2). `customData` is an arbitrary
+/// JSON-shaped map the campaign emitter attaches; it crosses the
+/// Pigeon codec as `Map<String?, Object?>` (the same shape `pyrx_attrs`
+/// uses on push payloads) and is re-wrapped into a typed
+/// `Map<String, PyrxAttributeValue>` by the umbrella package.
+///
+/// `expiresAt` is an ISO-8601 UTC string (matching the backend's
+/// `datetime.isoformat()` default). The umbrella package parses it to
+/// `DateTime?`.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct InAppMessageDto: Hashable, CustomStringConvertible {
+  /// Server-issued assignment id. Pass back via [markInteracted] /
+  /// [dismiss] / observer events to identify the message.
+  var id: String
+  /// The `in_app_messages.id` — stable across assignments.
+  var messageId: String
+  /// Placement key the host app maps to a UI surface
+  /// (e.g. `"home_banner"`).
+  var placement: String
+  /// NLT-rendered title text.
+  var title: String
+  /// NLT-rendered body text.
+  var body: String
+  /// NLT-rendered image URL, or null.
+  var imageUrl: String? = nil
+  /// 0–2 CTAs (Phase 10 v1 scope).
+  var ctas: [InAppCtaDto]
+  /// Host-app-driven custom JSON. Same loosely-typed shape as the push
+  /// `data` slot — values may themselves be deeply nested maps / lists.
+  var customData: [String?: Any?]? = nil
+  /// ISO-8601 UTC expiry instant. Null when the message has no expiry.
+  var expiresAt: String? = nil
+  /// Host-app sort / queue priority. Higher = more important.
+  var priority: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> InAppMessageDto? {
+    let id = pigeonVar_list[0] as! String
+    let messageId = pigeonVar_list[1] as! String
+    let placement = pigeonVar_list[2] as! String
+    let title = pigeonVar_list[3] as! String
+    let body = pigeonVar_list[4] as! String
+    let imageUrl: String? = nilOrValue(pigeonVar_list[5])
+    let ctas = pigeonVar_list[6] as! [InAppCtaDto]
+    let customData: [String?: Any?]? = nilOrValue(pigeonVar_list[7])
+    let expiresAt: String? = nilOrValue(pigeonVar_list[8])
+    let priority = pigeonVar_list[9] as! Int64
+
+    return InAppMessageDto(
+      id: id,
+      messageId: messageId,
+      placement: placement,
+      title: title,
+      body: body,
+      imageUrl: imageUrl,
+      ctas: ctas,
+      customData: customData,
+      expiresAt: expiresAt,
+      priority: priority
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      messageId,
+      placement,
+      title,
+      body,
+      imageUrl,
+      ctas,
+      customData,
+      expiresAt,
+      priority,
+    ]
+  }
+  static func == (lhs: InAppMessageDto, rhs: InAppMessageDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.id, rhs.id) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.messageId, rhs.messageId) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.placement, rhs.placement) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.title, rhs.title) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.body, rhs.body) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.imageUrl, rhs.imageUrl) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.ctas, rhs.ctas) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.customData, rhs.customData) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.expiresAt, rhs.expiresAt) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.priority, rhs.priority)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("InAppMessageDto")
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: id, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: messageId, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: placement, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: title, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: body, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: imageUrl, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: ctas, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: customData, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: expiresAt, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: priority, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "InAppMessageDto(id: \(String(describing: id)), messageId: \(String(describing: messageId)), placement: \(String(describing: placement)), title: \(String(describing: title)), body: \(String(describing: body)), imageUrl: \(String(describing: imageUrl)), ctas: \(String(describing: ctas)), customData: \(String(describing: customData)), expiresAt: \(String(describing: expiresAt)), priority: \(String(describing: priority)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct InAppMessageReceivedEventDto: Hashable, CustomStringConvertible {
+  var message: InAppMessageDto
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> InAppMessageReceivedEventDto? {
+    let message = pigeonVar_list[0] as! InAppMessageDto
+
+    return InAppMessageReceivedEventDto(
+      message: message
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      message
+    ]
+  }
+  static func == (lhs: InAppMessageReceivedEventDto, rhs: InAppMessageReceivedEventDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.message, rhs.message)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("InAppMessageReceivedEventDto")
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: message, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "InAppMessageReceivedEventDto(message: \(String(describing: message)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct InAppMessageDismissedEventDto: Hashable, CustomStringConvertible {
+  var messageId: String
+  var reason: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> InAppMessageDismissedEventDto? {
+    let messageId = pigeonVar_list[0] as! String
+    let reason: String? = nilOrValue(pigeonVar_list[1])
+
+    return InAppMessageDismissedEventDto(
+      messageId: messageId,
+      reason: reason
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      messageId,
+      reason,
+    ]
+  }
+  static func == (lhs: InAppMessageDismissedEventDto, rhs: InAppMessageDismissedEventDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.messageId, rhs.messageId) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.reason, rhs.reason)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("InAppMessageDismissedEventDto")
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: messageId, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: reason, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "InAppMessageDismissedEventDto(messageId: \(String(describing: messageId)), reason: \(String(describing: reason)))"
+  }
+}
+
+/// Result of [PyrxSynapseHostApi.inAppShow]. Mirrors the iOS
+/// `Synapse.ShowToken` and Android `ShowToken` — both opaque handles
+/// that unregister the callback when closed.
+///
+/// Pigeon does not synthesise opaque-handle types across languages, so
+/// we ship a small DTO carrying the (placement, subscriptionId) pair
+/// the native side needs to look up the registration for
+/// [PyrxSynapseHostApi.inAppUnregisterShow]. The Dart-side `ShowToken`
+/// class wraps this DTO and exposes `dispose()` — the host app never
+/// sees the subscription id.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct InAppShowTokenDto: Hashable, CustomStringConvertible {
+  var placement: String
+  var subscriptionId: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> InAppShowTokenDto? {
+    let placement = pigeonVar_list[0] as! String
+    let subscriptionId = pigeonVar_list[1] as! Int64
+
+    return InAppShowTokenDto(
+      placement: placement,
+      subscriptionId: subscriptionId
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      placement,
+      subscriptionId,
+    ]
+  }
+  static func == (lhs: InAppShowTokenDto, rhs: InAppShowTokenDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.placement, rhs.placement) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.subscriptionId, rhs.subscriptionId)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("InAppShowTokenDto")
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: placement, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: subscriptionId, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "InAppShowTokenDto(placement: \(String(describing: placement)), subscriptionId: \(String(describing: subscriptionId)))"
+  }
+}
+
+/// Single wire envelope for the 7-event observer surface. Exactly one of
 /// the `*Payload` fields is non-null per envelope, matching [kind].
 ///
 /// We use a flat-fields envelope instead of a Dart sealed class so
@@ -727,6 +1025,8 @@ struct PyrxEventEnvelope: Hashable, CustomStringConvertible {
   var pushReceivedColdStart: PushReceivedEventDto? = nil
   var queueDrained: QueueDrainedEventDto? = nil
   var identityChanged: IdentityChangedEventDto? = nil
+  var inAppMessageReceived: InAppMessageReceivedEventDto? = nil
+  var inAppMessageDismissed: InAppMessageDismissedEventDto? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -737,6 +1037,8 @@ struct PyrxEventEnvelope: Hashable, CustomStringConvertible {
     let pushReceivedColdStart: PushReceivedEventDto? = nilOrValue(pigeonVar_list[3])
     let queueDrained: QueueDrainedEventDto? = nilOrValue(pigeonVar_list[4])
     let identityChanged: IdentityChangedEventDto? = nilOrValue(pigeonVar_list[5])
+    let inAppMessageReceived: InAppMessageReceivedEventDto? = nilOrValue(pigeonVar_list[6])
+    let inAppMessageDismissed: InAppMessageDismissedEventDto? = nilOrValue(pigeonVar_list[7])
 
     return PyrxEventEnvelope(
       kind: kind,
@@ -744,7 +1046,9 @@ struct PyrxEventEnvelope: Hashable, CustomStringConvertible {
       pushClicked: pushClicked,
       pushReceivedColdStart: pushReceivedColdStart,
       queueDrained: queueDrained,
-      identityChanged: identityChanged
+      identityChanged: identityChanged,
+      inAppMessageReceived: inAppMessageReceived,
+      inAppMessageDismissed: inAppMessageDismissed
     )
   }
   func toList() -> [Any?] {
@@ -755,13 +1059,15 @@ struct PyrxEventEnvelope: Hashable, CustomStringConvertible {
       pushReceivedColdStart,
       queueDrained,
       identityChanged,
+      inAppMessageReceived,
+      inAppMessageDismissed,
     ]
   }
   static func == (lhs: PyrxEventEnvelope, rhs: PyrxEventEnvelope) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.kind, rhs.kind) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushReceived, rhs.pushReceived) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushClicked, rhs.pushClicked) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushReceivedColdStart, rhs.pushReceivedColdStart) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.queueDrained, rhs.queueDrained) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.identityChanged, rhs.identityChanged)
+    return PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.kind, rhs.kind) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushReceived, rhs.pushReceived) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushClicked, rhs.pushClicked) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.pushReceivedColdStart, rhs.pushReceivedColdStart) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.queueDrained, rhs.queueDrained) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.identityChanged, rhs.identityChanged) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.inAppMessageReceived, rhs.inAppMessageReceived) && PyrxSynapseMessagesPigeonInternal.deepEquals(lhs.inAppMessageDismissed, rhs.inAppMessageDismissed)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -772,10 +1078,12 @@ struct PyrxEventEnvelope: Hashable, CustomStringConvertible {
     PyrxSynapseMessagesPigeonInternal.deepHash(value: pushReceivedColdStart, hasher: &hasher)
     PyrxSynapseMessagesPigeonInternal.deepHash(value: queueDrained, hasher: &hasher)
     PyrxSynapseMessagesPigeonInternal.deepHash(value: identityChanged, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: inAppMessageReceived, hasher: &hasher)
+    PyrxSynapseMessagesPigeonInternal.deepHash(value: inAppMessageDismissed, hasher: &hasher)
   }
 
   public var description: String {
-    return "PyrxEventEnvelope(kind: \(String(describing: kind)), pushReceived: \(String(describing: pushReceived)), pushClicked: \(String(describing: pushClicked)), pushReceivedColdStart: \(String(describing: pushReceivedColdStart)), queueDrained: \(String(describing: queueDrained)), identityChanged: \(String(describing: identityChanged)))"
+    return "PyrxEventEnvelope(kind: \(String(describing: kind)), pushReceived: \(String(describing: pushReceived)), pushClicked: \(String(describing: pushClicked)), pushReceivedColdStart: \(String(describing: pushReceivedColdStart)), queueDrained: \(String(describing: queueDrained)), identityChanged: \(String(describing: identityChanged)), inAppMessageReceived: \(String(describing: inAppMessageReceived)), inAppMessageDismissed: \(String(describing: inAppMessageDismissed)))"
   }
 }
 
@@ -807,6 +1115,16 @@ private class PyrxSynapseMessagesPigeonCodecReader: FlutterStandardReader {
     case 138:
       return IdentityChangedEventDto.fromList(self.readValue() as! [Any?])
     case 139:
+      return InAppCtaDto.fromList(self.readValue() as! [Any?])
+    case 140:
+      return InAppMessageDto.fromList(self.readValue() as! [Any?])
+    case 141:
+      return InAppMessageReceivedEventDto.fromList(self.readValue() as! [Any?])
+    case 142:
+      return InAppMessageDismissedEventDto.fromList(self.readValue() as! [Any?])
+    case 143:
+      return InAppShowTokenDto.fromList(self.readValue() as! [Any?])
+    case 144:
       return PyrxEventEnvelope.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -846,8 +1164,23 @@ private class PyrxSynapseMessagesPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? IdentityChangedEventDto {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? PyrxEventEnvelope {
+    } else if let value = value as? InAppCtaDto {
       super.writeByte(139)
+      super.writeValue(value.toList())
+    } else if let value = value as? InAppMessageDto {
+      super.writeByte(140)
+      super.writeValue(value.toList())
+    } else if let value = value as? InAppMessageReceivedEventDto {
+      super.writeByte(141)
+      super.writeValue(value.toList())
+    } else if let value = value as? InAppMessageDismissedEventDto {
+      super.writeByte(142)
+      super.writeValue(value.toList())
+    } else if let value = value as? InAppShowTokenDto {
+      super.writeByte(143)
+      super.writeValue(value.toList())
+    } else if let value = value as? PyrxEventEnvelope {
+      super.writeByte(144)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -893,6 +1226,36 @@ protocol PyrxSynapseHostApi {
   func registerForPushNotifications(completion: @escaping (Result<Void, Error>) -> Void)
   func setTrackingEnabled(enabled: Bool, completion: @escaping (Result<Void, Error>) -> Void)
   func deleteUser(completion: @escaping (Result<Void, Error>) -> Void)
+  /// Register a render callback for [placement]. The native side
+  /// dispatches fresh messages through the [onInAppMessageReceived]
+  /// event stream; the Dart umbrella routes them to the per-token
+  /// callback by matching [InAppShowTokenDto.subscriptionId] against
+  /// `InAppMessage.id`/placement.
+  ///
+  /// Returns the [InAppShowTokenDto] handle the Dart umbrella wraps in
+  /// a `ShowToken` that calls [inAppUnregisterShow] on dispose.
+  func inAppShow(placement: String, completion: @escaping (Result<InAppShowTokenDto, Error>) -> Void)
+  /// Unregister a callback previously registered via [inAppShow]. Safe
+  /// to call with an unknown id — native side no-ops.
+  func inAppUnregisterShow(placement: String, subscriptionId: Int64, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Sync-style read of currently-active messages from the in-memory
+  /// cache. Does NOT trigger a poll. Pass `null` for [placement] to
+  /// return every cached message (sorted by priority desc, then expiry
+  /// asc to match the cross-SDK contract).
+  func inAppGetActive(placement: String?, completion: @escaping (Result<[InAppMessageDto], Error>) -> Void)
+  /// Mark a message dismissed. Evicts from cache, fires the
+  /// [onInAppMessageDismissed] event, and POSTs `/v1/in-app/log` with
+  /// `event="dismissed"`. [reason] is host-side observer metadata only
+  /// — it does NOT cross the wire (PR-1 backend has no `reason` field).
+  func inAppDismiss(messageId: String, reason: String?, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Mark a message interacted (a CTA was tapped). POSTs
+  /// `/v1/in-app/log` with `event="interacted"` and `cta_id=ctaId`.
+  /// Does NOT evict from cache.
+  func inAppMarkInteracted(messageId: String, ctaId: String, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Force an immediate poll. Coalesces with any in-flight poll
+  /// (lifecycle rule 4). No-op when no placements are registered or
+  /// the SDK is not yet identified.
+  func inAppRefresh(completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1108,6 +1471,133 @@ class PyrxSynapseHostApiSetup {
       }
     } else {
       deleteUserChannel.setMessageHandler(nil)
+    }
+    /// Register a render callback for [placement]. The native side
+    /// dispatches fresh messages through the [onInAppMessageReceived]
+    /// event stream; the Dart umbrella routes them to the per-token
+    /// callback by matching [InAppShowTokenDto.subscriptionId] against
+    /// `InAppMessage.id`/placement.
+    ///
+    /// Returns the [InAppShowTokenDto] handle the Dart umbrella wraps in
+    /// a `ShowToken` that calls [inAppUnregisterShow] on dispose.
+    let inAppShowChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppShow\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppShowChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let placementArg = args[0] as! String
+        api.inAppShow(placement: placementArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppShowChannel.setMessageHandler(nil)
+    }
+    /// Unregister a callback previously registered via [inAppShow]. Safe
+    /// to call with an unknown id — native side no-ops.
+    let inAppUnregisterShowChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppUnregisterShow\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppUnregisterShowChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let placementArg = args[0] as! String
+        let subscriptionIdArg = args[1] as! Int64
+        api.inAppUnregisterShow(placement: placementArg, subscriptionId: subscriptionIdArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppUnregisterShowChannel.setMessageHandler(nil)
+    }
+    /// Sync-style read of currently-active messages from the in-memory
+    /// cache. Does NOT trigger a poll. Pass `null` for [placement] to
+    /// return every cached message (sorted by priority desc, then expiry
+    /// asc to match the cross-SDK contract).
+    let inAppGetActiveChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppGetActive\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppGetActiveChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let placementArg: String? = nilOrValue(args[0])
+        api.inAppGetActive(placement: placementArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppGetActiveChannel.setMessageHandler(nil)
+    }
+    /// Mark a message dismissed. Evicts from cache, fires the
+    /// [onInAppMessageDismissed] event, and POSTs `/v1/in-app/log` with
+    /// `event="dismissed"`. [reason] is host-side observer metadata only
+    /// — it does NOT cross the wire (PR-1 backend has no `reason` field).
+    let inAppDismissChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppDismiss\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppDismissChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let messageIdArg = args[0] as! String
+        let reasonArg: String? = nilOrValue(args[1])
+        api.inAppDismiss(messageId: messageIdArg, reason: reasonArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppDismissChannel.setMessageHandler(nil)
+    }
+    /// Mark a message interacted (a CTA was tapped). POSTs
+    /// `/v1/in-app/log` with `event="interacted"` and `cta_id=ctaId`.
+    /// Does NOT evict from cache.
+    let inAppMarkInteractedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppMarkInteracted\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppMarkInteractedChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let messageIdArg = args[0] as! String
+        let ctaIdArg = args[1] as! String
+        api.inAppMarkInteracted(messageId: messageIdArg, ctaId: ctaIdArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppMarkInteractedChannel.setMessageHandler(nil)
+    }
+    /// Force an immediate poll. Coalesces with any in-flight poll
+    /// (lifecycle rule 4). No-op when no placements are registered or
+    /// the SDK is not yet identified.
+    let inAppRefreshChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.pyrx_synapse_platform_interface.PyrxSynapseHostApi.inAppRefresh\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      inAppRefreshChannel.setMessageHandler { _, reply in
+        api.inAppRefresh { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      inAppRefreshChannel.setMessageHandler(nil)
     }
   }
 }

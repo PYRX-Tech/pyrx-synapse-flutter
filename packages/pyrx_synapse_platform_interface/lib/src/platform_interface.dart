@@ -136,6 +136,54 @@ abstract class PyrxSynapsePlatform extends PlatformInterface {
   }
 
   // --------------------------------------------------------------------
+  // In-app messaging (Phase 10 PR-2b)
+  // --------------------------------------------------------------------
+  //
+  // Five methods that delegate to the iOS `Synapse.InApp.*` (PYRXSynapse
+  // 0.2.0) and Android `Pyrx.inApp.*` (synapse-inapp 0.2.0) surfaces.
+  // The 10 lifecycle rules from PR #218 live native-side; Flutter is
+  // delegation — no polling loop, cache, or backoff lives in Dart.
+
+  /// Register a render callback for [placement]. The native side returns
+  /// a token DTO that the umbrella wraps in a `ShowToken` (calling
+  /// `dispose()` invokes [inAppUnregisterShow]).
+  Future<InAppShowTokenDto> inAppShow(String placement) {
+    throw UnimplementedError('inAppShow() has not been implemented.');
+  }
+
+  /// Unregister a callback previously registered via [inAppShow]. Safe
+  /// to call with an unknown id.
+  Future<void> inAppUnregisterShow(String placement, int subscriptionId) {
+    throw UnimplementedError(
+      'inAppUnregisterShow() has not been implemented.',
+    );
+  }
+
+  /// Sync-style read of currently-active messages. Pass `null` for
+  /// [placement] to return every cached message (sorted by priority
+  /// desc, then expiry asc).
+  Future<List<InAppMessageDto>> inAppGetActive(String? placement) {
+    throw UnimplementedError('inAppGetActive() has not been implemented.');
+  }
+
+  /// Mark a message dismissed.
+  Future<void> inAppDismiss(String messageId, String? reason) {
+    throw UnimplementedError('inAppDismiss() has not been implemented.');
+  }
+
+  /// Mark a message interacted with [ctaId].
+  Future<void> inAppMarkInteracted(String messageId, String ctaId) {
+    throw UnimplementedError(
+      'inAppMarkInteracted() has not been implemented.',
+    );
+  }
+
+  /// Force an immediate poll.
+  Future<void> inAppRefresh() {
+    throw UnimplementedError('inAppRefresh() has not been implemented.');
+  }
+
+  // --------------------------------------------------------------------
   // Events stream
   // --------------------------------------------------------------------
 
@@ -147,6 +195,12 @@ abstract class PyrxSynapsePlatform extends PlatformInterface {
   /// attaching late still receive recent events thanks to the native
   /// SDK's replay buffer of 4 (iOS PYRXSynapse 0.1.2 / Android
   /// synapse-core 0.1.4).
+  ///
+  /// Phase 10 PR-2b: the envelope kinds now include
+  /// `inAppMessageReceived` and `inAppMessageDismissed` — both are
+  /// produced by the native SDK's existing observer stream alongside
+  /// the original 5 push/queue/identity events. No separate stream
+  /// exists per ADR-0009 D6.
   Stream<PyrxEventEnvelope> events() {
     throw UnimplementedError('events() has not been implemented.');
   }

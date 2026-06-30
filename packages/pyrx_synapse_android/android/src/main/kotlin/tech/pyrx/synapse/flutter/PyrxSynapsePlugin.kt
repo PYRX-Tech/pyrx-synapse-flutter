@@ -42,6 +42,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import tech.pyrx.synapse.flutter.generated.PyrxSynapseHostApi
 import tech.pyrx.synapse.flutter.generated.StreamEventsStreamHandler
+import tech.pyrx.synapse.inapp.PyrxInApp
 import tech.pyrx.synapse.push.PyrxPush
 
 class PyrxSynapsePlugin : FlutterPlugin, ActivityAware {
@@ -58,7 +59,7 @@ class PyrxSynapsePlugin : FlutterPlugin, ActivityAware {
 
         // Install the synapse-push FCM bridge. Idempotent and safe to
         // call before Pyrx.initialize — the bridge buffers until the
-        // SDK is ready (synapse-push 0.1.4 contract).
+        // SDK is ready (synapse-push 0.2.0 contract).
         try {
             PyrxPush.install(appContext)
         } catch (e: Throwable) {
@@ -68,6 +69,18 @@ class PyrxSynapsePlugin : FlutterPlugin, ActivityAware {
             android.util.Log.w(
                 "PYRXSynapseFlutter",
                 "PyrxPush.install failed (FCM not configured?): ${e.message}",
+            )
+        }
+
+        // Install the synapse-inapp manager. Phase 10 PR-2b. Returns
+        // false (not throws) when Pyrx.initialize has not completed —
+        // we re-attempt on initialize() success in the host-api impl.
+        try {
+            PyrxInApp.install(appContext)
+        } catch (e: Throwable) {
+            android.util.Log.w(
+                "PYRXSynapseFlutter",
+                "PyrxInApp.install failed: ${e.message}",
             )
         }
 

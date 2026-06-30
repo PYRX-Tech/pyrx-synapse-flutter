@@ -36,6 +36,7 @@ import 'dart:convert';
 
 import 'package:pyrx_synapse_platform_interface/pyrx_synapse_platform_interface.dart';
 
+import 'in_app.dart';
 import 'pyrx_event.dart';
 
 // --------------------------------------------------------------------
@@ -285,6 +286,20 @@ class Synapse {
   /// directly. Tests set this to a fake implementation to intercept
   /// every method call without touching the platform channel.
   static PyrxSynapsePlatform get _platform => PyrxSynapsePlatform.instance;
+
+  /// In-app messaging surface (Phase 10 PR-2b).
+  ///
+  /// Reach the 5-method in-app API via `Synapse.inApp.show(...)`,
+  /// `Synapse.inApp.getActive(...)`, etc. Cross-SDK symmetric per
+  /// ADR-0009 D5 — same method names + signatures as the browser SDK's
+  /// `synapse('inApp.*', ...)` facade, the iOS `Synapse.InApp.*`
+  /// namespace, the Android `Pyrx.inApp.*` object, and the React
+  /// Native equivalent.
+  ///
+  /// Single instance per app process — the namespace owns a callback
+  /// registry that fans the merged `Synapse.events` stream out to
+  /// per-token render callbacks.
+  static final SynapseInApp inApp = SynapseInApp();
 
   // ------------------- Lifecycle -------------------
 

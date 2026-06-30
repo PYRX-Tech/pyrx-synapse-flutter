@@ -232,11 +232,144 @@ class IdentityChangedEventDto {
 }
 
 // =============================================================================
+// SECTION 2b: In-app messaging DTOs (Phase 10 PR-2b)
+//
+// Mirror the iOS `Synapse.InApp.*` surface (PYRXSynapse 0.2.0) and the
+// Android `Pyrx.inApp.*` surface (synapse-inapp 0.2.0). The shapes are
+// cross-SDK symmetric per ADR-0009 D5 — browser / iOS / Android / RN /
+// Flutter all carry the same semantic fields with the same names.
+//
+// The native SDKs own the wire (snake_case from the backend); these DTOs
+// use the same idiomatic camelCase the rest of the Pigeon spec uses, so
+// the bridge translates per-platform on the way in.
+// =============================================================================
+
+/// One call-to-action button on an [InAppMessageDto]. NLT source has
+/// already been resolved against the current contact at fetch time —
+/// `label` and `actionPayload` are ready to render verbatim.
+///
+/// `actionType` is one of: `"deep_link"`, `"dismiss"`, `"webview"`,
+/// `"callback"` (lowercase snake_case, matching the wire). Pigeon's
+/// codec stays string-based so the discriminator round-trips losslessly
+/// across the bridge without per-language enum translation.
+class InAppCtaDto {
+  InAppCtaDto({
+    required this.id,
+    required this.label,
+    required this.actionType,
+    this.actionPayload,
+  });
+
+  String id;
+  String label;
+  String actionType;
+  String? actionPayload;
+}
+
+/// One in-app message delivered to a registered render callback.
+///
+/// Mirrors the iOS `InAppMessage` struct + Android `InAppMessage` data
+/// class field-for-field per ADR-0009 D5. The host app draws the UI —
+/// the SDK does NOT render (ADR-0008 D2). `customData` is an arbitrary
+/// JSON-shaped map the campaign emitter attaches; it crosses the
+/// Pigeon codec as `Map<String?, Object?>` (the same shape `pyrx_attrs`
+/// uses on push payloads) and is re-wrapped into a typed
+/// `Map<String, PyrxAttributeValue>` by the umbrella package.
+///
+/// `expiresAt` is an ISO-8601 UTC string (matching the backend's
+/// `datetime.isoformat()` default). The umbrella package parses it to
+/// `DateTime?`.
+class InAppMessageDto {
+  InAppMessageDto({
+    required this.id,
+    required this.messageId,
+    required this.placement,
+    required this.title,
+    required this.body,
+    this.imageUrl,
+    required this.ctas,
+    this.customData,
+    this.expiresAt,
+    required this.priority,
+  });
+
+  /// Server-issued assignment id. Pass back via [markInteracted] /
+  /// [dismiss] / observer events to identify the message.
+  String id;
+
+  /// The `in_app_messages.id` — stable across assignments.
+  String messageId;
+
+  /// Placement key the host app maps to a UI surface
+  /// (e.g. `"home_banner"`).
+  String placement;
+
+  /// NLT-rendered title text.
+  String title;
+
+  /// NLT-rendered body text.
+  String body;
+
+  /// NLT-rendered image URL, or null.
+  String? imageUrl;
+
+  /// 0–2 CTAs (Phase 10 v1 scope).
+  List<InAppCtaDto> ctas;
+
+  /// Host-app-driven custom JSON. Same loosely-typed shape as the push
+  /// `data` slot — values may themselves be deeply nested maps / lists.
+  Map<String?, Object?>? customData;
+
+  /// ISO-8601 UTC expiry instant. Null when the message has no expiry.
+  String? expiresAt;
+
+  /// Host-app sort / queue priority. Higher = more important.
+  int priority;
+}
+
+class InAppMessageReceivedEventDto {
+  InAppMessageReceivedEventDto({required this.message});
+
+  InAppMessageDto message;
+}
+
+class InAppMessageDismissedEventDto {
+  InAppMessageDismissedEventDto({
+    required this.messageId,
+    this.reason,
+  });
+
+  String messageId;
+  String? reason;
+}
+
+/// Result of [PyrxSynapseHostApi.inAppShow]. Mirrors the iOS
+/// `Synapse.ShowToken` and Android `ShowToken` — both opaque handles
+/// that unregister the callback when closed.
+///
+/// Pigeon does not synthesise opaque-handle types across languages, so
+/// we ship a small DTO carrying the (placement, subscriptionId) pair
+/// the native side needs to look up the registration for
+/// [PyrxSynapseHostApi.inAppUnregisterShow]. The Dart-side `ShowToken`
+/// class wraps this DTO and exposes `dispose()` — the host app never
+/// sees the subscription id.
+class InAppShowTokenDto {
+  InAppShowTokenDto({
+    required this.placement,
+    required this.subscriptionId,
+  });
+
+  String placement;
+  int subscriptionId;
+}
+
+// =============================================================================
 // SECTION 3: HostApi — Dart → native imperative surface
 //
-// 12 methods covering lifecycle, identity, events, push, privacy. Mirrors
-// the public surface of `Pyrx.shared.*` (iOS) and `Pyrx.*` (Android) as
-// of PYRXSynapse 0.1.2 / synapse-core 0.1.4.
+// 17 methods covering lifecycle, identity, events, push, privacy, and
+// in-app messaging. Mirrors the public surface of `Pyrx.shared.*` /
+// `Synapse.InApp.*` (iOS, PYRXSynapse 0.2.0) and `Pyrx.*` / `Pyrx.inApp.*`
+// (Android, synapse-{core,push,inapp} 0.2.0).
 // =============================================================================
 
 @HostApi()
@@ -292,6 +425,56 @@ abstract class PyrxSynapseHostApi {
 
   @async
   void deleteUser();
+
+  // --- In-app messaging (Phase 10 PR-2b) ---------------------------------
+  //
+  // Five methods mirror the iOS `Synapse.InApp.*` (PYRXSynapse 0.2.0)
+  // and Android `Pyrx.inApp.*` (synapse-inapp 0.2.0) surfaces. The
+  // lifecycle rules (identity-gating, polling coalesce, server-
+  // authoritative cache, etc.) live native-side per ADR-0008; Flutter
+  // is delegation.
+
+  /// Register a render callback for [placement]. The native side
+  /// dispatches fresh messages through the [onInAppMessageReceived]
+  /// event stream; the Dart umbrella routes them to the per-token
+  /// callback by matching [InAppShowTokenDto.subscriptionId] against
+  /// `InAppMessage.id`/placement.
+  ///
+  /// Returns the [InAppShowTokenDto] handle the Dart umbrella wraps in
+  /// a `ShowToken` that calls [inAppUnregisterShow] on dispose.
+  @async
+  InAppShowTokenDto inAppShow(String placement);
+
+  /// Unregister a callback previously registered via [inAppShow]. Safe
+  /// to call with an unknown id — native side no-ops.
+  @async
+  void inAppUnregisterShow(String placement, int subscriptionId);
+
+  /// Sync-style read of currently-active messages from the in-memory
+  /// cache. Does NOT trigger a poll. Pass `null` for [placement] to
+  /// return every cached message (sorted by priority desc, then expiry
+  /// asc to match the cross-SDK contract).
+  @async
+  List<InAppMessageDto> inAppGetActive(String? placement);
+
+  /// Mark a message dismissed. Evicts from cache, fires the
+  /// [onInAppMessageDismissed] event, and POSTs `/v1/in-app/log` with
+  /// `event="dismissed"`. [reason] is host-side observer metadata only
+  /// — it does NOT cross the wire (PR-1 backend has no `reason` field).
+  @async
+  void inAppDismiss(String messageId, String? reason);
+
+  /// Mark a message interacted (a CTA was tapped). POSTs
+  /// `/v1/in-app/log` with `event="interacted"` and `cta_id=ctaId`.
+  /// Does NOT evict from cache.
+  @async
+  void inAppMarkInteracted(String messageId, String ctaId);
+
+  /// Force an immediate poll. Coalesces with any in-flight poll
+  /// (lifecycle rule 4). No-op when no placements are registered or
+  /// the SDK is not yet identified.
+  @async
+  void inAppRefresh();
 }
 
 // =============================================================================
@@ -326,15 +509,21 @@ abstract class PyrxSynapseHostApi {
 /// Dart consumer wraps a `default:` branch so unknown variants from
 /// future native SDKs are tolerated; the umbrella's `Stream<PyrxEvent>`
 /// drops unknown envelopes silently with a debug log.
+///
+/// Phase 10 PR-2b (ADR-0009 D5) extends the 5-event taxonomy to 7 by
+/// adding [inAppMessageReceived] + [inAppMessageDismissed] — symmetric
+/// with the browser/iOS/Android SDKs' equivalent events.
 enum PyrxEventKind {
   pushReceived,
   pushClicked,
   pushReceivedColdStart,
   queueDrained,
   identityChanged,
+  inAppMessageReceived,
+  inAppMessageDismissed,
 }
 
-/// Single wire envelope for the 5-event observer surface. Exactly one of
+/// Single wire envelope for the 7-event observer surface. Exactly one of
 /// the `*Payload` fields is non-null per envelope, matching [kind].
 ///
 /// We use a flat-fields envelope instead of a Dart sealed class so
@@ -348,6 +537,8 @@ class PyrxEventEnvelope {
     this.pushReceivedColdStart,
     this.queueDrained,
     this.identityChanged,
+    this.inAppMessageReceived,
+    this.inAppMessageDismissed,
   });
 
   PyrxEventKind kind;
@@ -356,6 +547,8 @@ class PyrxEventEnvelope {
   PushReceivedEventDto? pushReceivedColdStart;
   QueueDrainedEventDto? queueDrained;
   IdentityChangedEventDto? identityChanged;
+  InAppMessageReceivedEventDto? inAppMessageReceived;
+  InAppMessageDismissedEventDto? inAppMessageDismissed;
 }
 
 @EventChannelApi()

@@ -4,7 +4,7 @@ description: >-
   to the published `tech.pyrx.synapse:synapse-core` and `:synapse-push` Kotlin
   SDKs from Maven Central, and forwards the SDK's SharedFlow<PyrxEvent>
   observer surface to Dart through Pigeon-generated event channels.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 repository: https://github.com/PYRX-Tech/pyrx-synapse-flutter
 issue_tracker: https://github.com/PYRX-Tech/pyrx-synapse-flutter/issues
@@ -25,7 +25,7 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.7
-  pyrx_synapse_platform_interface: ^0.1.0
+  pyrx_synapse_platform_interface: ^0.2.0
 
 dev_dependencies:
   flutter_test:

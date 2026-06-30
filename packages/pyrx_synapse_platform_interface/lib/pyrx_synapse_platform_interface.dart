@@ -11,7 +11,10 @@
 ///   - The Pigeon-generated DTO types (`PyrxInitArgs`, `PyrxIdentityResult`,
 ///     `PyrxDebugInfo`, `PyrxPushPermissionResult`, `PyrxEventEnvelope`,
 ///     `PushReceivedEventDto`, `PushClickedEventDto`, `IdentitySnapshotDto`,
-///     `QueueDrainedEventDto`, `IdentityChangedEventDto`, `PyrxEventKind`).
+///     `QueueDrainedEventDto`, `IdentityChangedEventDto`, `PyrxEventKind`,
+///     and Phase 10 PR-2b in-app DTOs: `InAppMessageDto`, `InAppCtaDto`,
+///     `InAppShowTokenDto`, `InAppMessageReceivedEventDto`,
+///     `InAppMessageDismissedEventDto`).
 ///
 /// **Customers do not import this package directly** — they import
 /// `package:pyrx_synapse/pyrx_synapse.dart`, which re-exports everything
@@ -27,6 +30,11 @@ export 'src/generated/pyrx_synapse_messages.g.dart'
     show
         IdentityChangedEventDto,
         IdentitySnapshotDto,
+        InAppCtaDto,
+        InAppMessageDismissedEventDto,
+        InAppMessageDto,
+        InAppMessageReceivedEventDto,
+        InAppShowTokenDto,
         PushClickedEventDto,
         PushReceivedEventDto,
         PyrxDebugInfo,
