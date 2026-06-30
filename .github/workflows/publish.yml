@@ -35,7 +35,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: "3.32.x"
+          flutter-version: "3.35.x"
           cache: true
 
       - name: dart pub publish (platform-interface, dry-run gate)
@@ -55,7 +55,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: "3.32.x", cache: true }
+        with: { channel: stable, flutter-version: "3.35.x", cache: true }
 
       - name: dart pub publish (ios, dry-run gate)
         working-directory: packages/pyrx_synapse_ios
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: "3.32.x", cache: true }
+        with: { channel: stable, flutter-version: "3.35.x", cache: true }
 
       - name: dart pub publish (android, dry-run gate)
         working-directory: packages/pyrx_synapse_android
@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, flutter-version: "3.32.x", cache: true }
+        with: { channel: stable, flutter-version: "3.35.x", cache: true }
 
       - name: Wait for sibling packages to propagate to pub.dev
         # pub.dev takes ~30s to index newly-published packages. The
