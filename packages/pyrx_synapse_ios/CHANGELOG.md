@@ -1,3 +1,13 @@
+## 0.2.0 - 2026-07-01
+
+iOS bridge for the in-app messaging surface (ADR-0008 + ADR-0009). Delegates to `PYRXSynapse 0.2.0`'s `Synapse.InApp.*` namespace.
+
+### Changed
+
+- Native dep pinned to `PYRXSynapse >= 0.2.0, < 1.0.0` (was `~> 0.1.2`).
+- AsyncStream observer tap forwards 2 new `PyrxEvent` cases to the Pigeon `EventChannelApi`.
+- Wire format unchanged — `reason` on `dismiss` stays host-side observer only (does not cross the `/v1/in-app/log` wire).
+
 ## 0.1.0 - 2026-06-28
 
 First public release. iOS implementation of the PYRX Synapse Flutter

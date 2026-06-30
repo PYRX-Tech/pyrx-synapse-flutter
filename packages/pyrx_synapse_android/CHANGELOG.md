@@ -1,3 +1,14 @@
+## 0.2.0 - 2026-07-01
+
+Android bridge for the in-app messaging surface (ADR-0008 + ADR-0009). Delegates to `Pyrx.inApp.*` in `tech.pyrx.synapse:synapse-core 0.2.0`.
+
+### Changed
+
+- Native deps pinned to `tech.pyrx.synapse:synapse-{core,push,inapp}:0.2.0` (was `synapse-{core,push}:0.1.4+`).
+- New transitive dep `synapse-inapp:0.2.0` bundled — host apps don't need to add it manually.
+- SharedFlow observer tap forwards 2 new `PyrxEvent` subtypes to the Pigeon EventChannel.
+- Wire format unchanged — `reason` on `dismiss` stays host-side observer only.
+
 ## 0.1.0 - 2026-06-28
 
 First public release. Android implementation of the PYRX Synapse

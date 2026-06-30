@@ -1,3 +1,33 @@
+## 0.2.0 - 2026-07-01
+
+In-app messaging surface (ADR-0008 + ADR-0009).
+
+### Added — `Synapse.inApp.*` namespace
+
+- `Synapse.inApp.show(placement, callback): Future<ShowToken>` — register a render callback for a placement (host app draws UI; SDK never ships widget code per ADR-0008 D2).
+- `Synapse.inApp.getActive([placement]): Future<List<InAppMessage>>`.
+- `Synapse.inApp.dismiss(messageId, {reason}): Future<void>`.
+- `Synapse.inApp.markInteracted(messageId, ctaId): Future<void>` — separate method (NOT folded into dismiss; cross-SDK symmetry guarantee).
+- `Synapse.inApp.refresh(): Future<void>`.
+
+### Added — sealed `PyrxEvent` extension (5 → 7 variants)
+
+- `InAppMessageReceived(message)`.
+- `InAppMessageDismissed(messageId, reason?)`.
+- Both surface through the existing merged `Stream<PyrxEvent>` — no new stream, no new observer surface (matches Phase 9.3 + Phase 9.2.1 cross-SDK symmetric contract from ADR-0005 D9).
+
+### Added — data classes
+
+- `InAppMessage` (id, messageId, placement, title, body, imageUrl?, ctas, priority, expiresAt?, customData?).
+- `InAppCta` + `InAppCtaActionType` (`deepLink | dismiss | webview | callback | unknown`).
+- `ShowToken` (Disposable; `dispose()` unregisters the callback).
+
+### Changed
+
+- All 4 federated packages bumped `0.1.0 → 0.2.0` (additive surface, no breaking changes).
+- Native dep pins updated to the published `PYRXSynapse 0.2.0` (iOS) and `tech.pyrx.synapse:*:0.2.0` (Android).
+- Workflow Flutter version dropped from `3.16.x/3.27.x` to latest `stable` so the Dart SDK requirements of melos 8 + pigeon 27 are satisfied without ongoing maintenance.
+
 ## 0.1.0 - 2026-06-28
 
 First public release of the PYRX Synapse Flutter SDK on pub.dev. Wraps the

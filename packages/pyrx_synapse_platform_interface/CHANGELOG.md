@@ -1,3 +1,14 @@
+## 0.2.0 - 2026-07-01
+
+Extends the Pigeon platform-interface contract with the in-app messaging surface from ADR-0009 D5.
+
+### Added
+
+- 5 new `HostApi` methods: `inAppShow`, `inAppGetActive`, `inAppDismiss`, `inAppMarkInteracted`, `inAppRefresh`.
+- 2 new `EventChannelApi` event kinds: `inAppMessageReceived`, `inAppMessageDismissed` (extends 5-event taxonomy to 7).
+- Pigeon-generated bundle includes the matching codecs across Dart, Swift, and Kotlin (`*.g.dart`, `*.g.swift`, `*.g.kt` round-trip clean).
+- New data classes: `InAppMessageDto`, `InAppCtaDto`.
+
 ## 0.1.0 - 2026-06-28
 
 First public release. Defines the platform-interface contract every
